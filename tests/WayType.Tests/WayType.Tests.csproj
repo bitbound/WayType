@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>WayType.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.v3.runner.inproc.console" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\WayType.Libraries.Core\WayType.Libraries.Core.csproj" />
+    <ProjectReference Include="..\..\Libraries\WayType.Libraries.Speech\WayType.Libraries.Speech.csproj" />
+    <ProjectReference Include="..\..\Libraries\WayType.Libraries.Updater\WayType.Libraries.Updater.csproj" />
+    <ProjectReference Include="..\..\Libraries\WayType.Libraries.Portal\WayType.Libraries.Portal.csproj" />
+    <ProjectReference Include="..\..\Libraries\WayType.Libraries.Native.Linux\WayType.Libraries.Native.Linux.csproj" />
+  </ItemGroup>
+
+</Project>

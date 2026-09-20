@@ -1,37 +1,36 @@
-using System;
-using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Microsoft.Extensions.DependencyInjection;
 using WayType.ViewModels;
 
 namespace WayType;
 
 /// <summary>
-/// Given a view model, returns the corresponding view if possible.
+/// Resolves the view for a view model through the container, then gives it the view model as data context.
 /// </summary>
-[RequiresUnreferencedCode(
-    "Default implementation of ViewLocator involves reflection which may be trimmed away.",
-    Url = "https://docs.avaloniaui.net/docs/concepts/view-locator")]
-public class ViewLocator : IDataTemplate
+public sealed class ViewLocator : IDataTemplate
 {
-    public Control? Build(object? param)
+    public Control? Build(object? data)
     {
-        if (param is null)
-            return null;
-        
-        var name = param.GetType().FullName!.Replace("ViewModel", "View", StringComparison.Ordinal);
-        var type = Type.GetType(name);
-
-        if (type != null)
+        if (data is not IViewModelBase viewModel)
         {
-            return (Control)Activator.CreateInstance(type)!;
+            return new TextBlock { Text = "Not a view model: " + data?.GetType().Name };
         }
-        
-        return new TextBlock { Text = "Not Found: " + name };
+
+        var view = ActivatorUtilities.GetServiceOrCreateInstance(StaticServiceProvider.Instance, viewModel.ViewType);
+
+        if (view is not Control control)
+        {
+            return new TextBlock { Text = "View is not a control: " + viewModel.ViewType.Name };
+        }
+
+        control.DataContext = viewModel;
+
+        return control;
     }
 
     public bool Match(object? data)
     {
-        return data is ViewModelBase;
+        return data is IViewModelBase;
     }
 }

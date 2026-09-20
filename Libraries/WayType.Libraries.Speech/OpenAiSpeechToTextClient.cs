@@ -1,0 +1,69 @@
+using System.Net.Http.Headers;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using WayType.Libraries.Core.Settings;
+using WayType.Libraries.Core.Speech;
+
+namespace WayType.Libraries.Speech;
+
+/// <summary>
+/// Sends recorded audio to an OpenAI-compatible /audio/transcriptions endpoint.
+/// </summary>
+public sealed class OpenAiSpeechToTextClient(HttpClient httpClient, ISettingsService settings, ILogger<OpenAiSpeechToTextClient> logger) : ISpeechToTextClient
+{
+    public async Task<string> TranscribeAsync(byte[] wavBytes, CancellationToken cancellationToken = default)
+    {
+        var speech = settings.Current.SpeechToText;
+        var model = speech.ModelId;
+
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            throw new AiEndpointException("Set a speech-to-text model before transcribing.");
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, AiEndpoint.BuildUri(speech.Endpoint, "/audio/transcriptions"));
+        request.Content = BuildForm(model, speech.Language, wavBytes);
+        AiEndpointRequests.ApplyAuthorization(request, speech.ApiKey);
+
+        var body = await AiEndpointRequests.SendAsync(httpClient, request, logger, cancellationToken).ConfigureAwait(false);
+
+        using var document = AiEndpointRequests.ParseResponse(body);
+
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new AiEndpointException("The transcription response was not a JSON object.", detail: AiEndpointRequests.Truncate(body));
+        }
+
+        var text = document.RootElement.TryGetProperty("text", out var textElement) && textElement.ValueKind == JsonValueKind.String
+            ? textElement.GetString()
+            : null;
+
+        return (text ?? string.Empty).Trim();
+    }
+
+    public Task<IReadOnlyList<AiModel>> ListModelsAsync(CancellationToken cancellationToken = default)
+    {
+        var speech = settings.Current.SpeechToText;
+
+        return AiEndpointRequests.ListModelsAsync(httpClient, speech.Endpoint, speech.ApiKey, logger, cancellationToken);
+    }
+
+    private static MultipartFormDataContent BuildForm(string model, string? language, byte[] wavBytes)
+    {
+        var form = new MultipartFormDataContent();
+
+        var audio = new ByteArrayContent(wavBytes);
+        audio.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+        form.Add(audio, "file", "audio.wav");
+
+        form.Add(new StringContent(model), "model");
+        form.Add(new StringContent("json"), "response_format");
+
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            form.Add(new StringContent(language), "language");
+        }
+
+        return form;
+    }
+}

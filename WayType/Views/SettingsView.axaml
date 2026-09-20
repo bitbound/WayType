@@ -1,0 +1,299 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WayType.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="900"
+             x:Class="WayType.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.field">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel Spacing="16" MaxWidth="780" HorizontalAlignment="Left">
+
+      <TextBlock Classes="h1" Text="Settings" />
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Text input permission" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Granted"
+                       Classes="Success"
+                       IsVisible="{Binding IsPermissionGranted}" />
+            <TextBlock Text="Not granted"
+                       Classes="Error"
+                       IsVisible="{Binding !IsPermissionGranted}" />
+          </StackPanel>
+
+          <TextBlock Text="{Binding PermissionMessage}"
+                     Classes="caption"
+                     TextWrapping="Wrap" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Grant permission"
+                    Classes="Primary VariantFilled"
+                    Command="{Binding RequestPermissionCommand}"
+                    IsEnabled="{Binding !IsRequestingPermission}" />
+            <Button Content="Re-check"
+                    Classes="Primary VariantOutlined"
+                    Command="{Binding ProbePermissionCommand}"
+                    IsEnabled="{Binding !IsProbingPermission}" />
+            <Button Content="Clear saved grant"
+                    Classes="Error VariantText"
+                    Command="{Binding RevokePermissionCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Dictation" />
+
+          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto" >
+            <TextBlock Grid.Row="0" Classes="field" Text="Shortcut" />
+            <TextBox Grid.Row="0" Grid.Column="1"
+                     Text="{Binding Hotkey}"
+                     PlaceholderText="Ctrl+Alt+Space" />
+
+            <TextBlock Grid.Row="1" Classes="field" Text="Trigger" Margin="0,10,0,0" />
+            <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                      ItemsSource="{Binding TriggerModes}"
+                      SelectedItem="{Binding TriggerModeName}"
+                      HorizontalAlignment="Left" />
+
+            <TextBlock Grid.Row="2" Classes="field" Text="Microphone" Margin="0,10,0,0" />
+            <Grid Grid.Row="2" Grid.Column="1" Margin="0,10,0,0" ColumnDefinitions="*,Auto">
+              <ComboBox ItemsSource="{Binding DeviceOptions}"
+                        SelectedItem="{Binding SelectedDevice}"
+                        HorizontalAlignment="Stretch" />
+              <Button Grid.Column="1"
+                      Classes="Primary VariantText Small"
+                      Command="{Binding LoadDevicesCommand}"
+                      ToolTip.Tip="Re-scan capture devices"
+                      Margin="8,0,0,0">
+                <PathIcon Data="{StaticResource arrow_sync_regular}" />
+              </Button>
+            </Grid>
+
+            <TextBlock Grid.Row="3" Classes="field" Text="Max recording seconds" Margin="0,10,0,0" />
+            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,10,0,0"
+                     Text="{Binding MaximumRecordingSeconds}" />
+          </Grid>
+
+          <TextBlock Text="Tap starts and stops a dictation. Hold-to-talk needs a key release event that the portal shortcut API does not deliver."
+                     Classes="caption"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Appearance and history" />
+
+          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto">
+            <TextBlock Grid.Row="0" Classes="field" Text="Theme" />
+            <ComboBox Grid.Row="0" Grid.Column="1"
+                      ItemsSource="{Binding ThemeModes}"
+                      SelectedItem="{Binding ThemeModeName}"
+                      HorizontalAlignment="Left" />
+
+            <TextBlock Grid.Row="1" Classes="field" Text="History items to keep" Margin="0,10,0,0" />
+            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                     Text="{Binding HistoryItemsToKeep}" />
+          </Grid>
+
+          <CheckBox Content="Check GitHub Releases for updates"
+                    IsChecked="{Binding CheckForUpdates}" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Speech to text" />
+
+          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+            <TextBlock Grid.Row="0" Classes="field" Text="OpenAI endpoint" />
+            <TextBox Grid.Row="0" Grid.Column="1"
+                     Text="{Binding SpeechEndpoint}"
+                     PlaceholderText="https://api.openai.com/v1" />
+
+            <TextBlock Grid.Row="1" Classes="field" Text="API key" Margin="0,10,0,0" />
+            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                     Text="{Binding SpeechApiKey}"
+                     PlaceholderText="sk-..." />
+
+            <TextBlock Grid.Row="2" Classes="field" Text="Model" Margin="0,10,0,0" />
+            <Grid Grid.Row="2" Grid.Column="1" Margin="0,10,0,0" ColumnDefinitions="*,Auto,Auto">
+              <TextBox Text="{Binding SpeechModelId}" PlaceholderText="model id" />
+              <ComboBox Grid.Column="1"
+                        ItemsSource="{Binding SpeechModels}"
+                        SelectedItem="{Binding SelectedSpeechModel}"
+                        MinWidth="180"
+                        Margin="8,0,0,0" />
+              <Button Grid.Column="2"
+                      Classes="Primary VariantText Small"
+                      Command="{Binding RefreshSpeechModelsCommand}"
+                      IsEnabled="{Binding !IsLoadingSpeechModels}"
+                      ToolTip.Tip="Load models from /v1/models"
+                      Margin="8,0,0,0">
+                <PathIcon Data="{StaticResource arrow_sync_regular}" />
+              </Button>
+            </Grid>
+          </Grid>
+
+          <TextBlock Text="{Binding SpeechModelsMessage}" Classes="caption" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Post-processing" />
+          <CheckBox Content="Send the transcription through a text model before typing it"
+                    IsChecked="{Binding PostProcessingEnabled}" />
+
+          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+            <TextBlock Grid.Row="0" Classes="field" Text="OpenAI endpoint" />
+            <TextBox Grid.Row="0" Grid.Column="1"
+                     Text="{Binding PostEndpoint}"
+                     PlaceholderText="https://api.openai.com/v1" />
+
+            <TextBlock Grid.Row="1" Classes="field" Text="API key" Margin="0,10,0,0" />
+            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                     Text="{Binding PostApiKey}"
+                     PlaceholderText="sk-..." />
+
+            <TextBlock Grid.Row="2" Classes="field" Text="Model" Margin="0,10,0,0" />
+            <Grid Grid.Row="2" Grid.Column="1" Margin="0,10,0,0" ColumnDefinitions="*,Auto,Auto">
+              <TextBox Text="{Binding PostModelId}" PlaceholderText="model id" />
+              <ComboBox Grid.Column="1"
+                        ItemsSource="{Binding PostModels}"
+                        SelectedItem="{Binding SelectedPostModel}"
+                        MinWidth="180"
+                        Margin="8,0,0,0" />
+              <Button Grid.Column="2"
+                      Classes="Primary VariantText Small"
+                      Command="{Binding RefreshPostModelsCommand}"
+                      IsEnabled="{Binding !IsLoadingPostModels}"
+                      ToolTip.Tip="Load models from /v1/models"
+                      Margin="8,0,0,0">
+                <PathIcon Data="{StaticResource arrow_sync_regular}" />
+              </Button>
+            </Grid>
+          </Grid>
+
+          <TextBlock Text="{Binding PostModelsMessage}" Classes="caption" />
+
+          <TextBlock Classes="h2" Text="Model overrides" />
+          <TextBlock Text="Blank means the parameter is not sent at all." Classes="caption" />
+
+          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+            <TextBlock Grid.Row="0" Classes="field" Text="Thinking" />
+            <ComboBox Grid.Row="0" Grid.Column="1"
+                      ItemsSource="{Binding ThinkingModes}"
+                      SelectedItem="{Binding ThinkingMode}"
+                      HorizontalAlignment="Left" />
+
+            <TextBlock Grid.Row="1" Classes="field" Text="Reasoning effort" Margin="0,8,0,0" />
+            <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"
+                      ItemsSource="{Binding ReasoningEfforts}"
+                      SelectedItem="{Binding ReasoningEffort}"
+                      HorizontalAlignment="Left" />
+
+            <TextBlock Grid.Row="2" Classes="field" Text="response_format" Margin="0,8,0,0" />
+            <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,8,0,0"
+                      ItemsSource="{Binding ResponseFormats}"
+                      SelectedItem="{Binding ResponseFormat}"
+                      HorizontalAlignment="Left" />
+
+            <TextBlock Grid.Row="3" Classes="field" Text="temperature" Margin="0,8,0,0" />
+            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,8,0,0" Text="{Binding Temperature}" />
+
+            <TextBlock Grid.Row="4" Classes="field" Text="top_p" Margin="0,8,0,0" />
+            <TextBox Grid.Row="4" Grid.Column="1" Margin="0,8,0,0" Text="{Binding TopP}" />
+
+            <TextBlock Grid.Row="5" Classes="field" Text="max_completion_tokens" Margin="0,8,0,0" />
+            <TextBox Grid.Row="5" Grid.Column="1" Margin="0,8,0,0" Text="{Binding MaxCompletionTokens}" />
+
+            <TextBlock Grid.Row="6" Classes="field" Text="max_tokens" Margin="0,8,0,0" />
+            <TextBox Grid.Row="6" Grid.Column="1" Margin="0,8,0,0" Text="{Binding MaxTokens}" />
+
+            <TextBlock Grid.Row="7" Classes="field" Text="frequency_penalty" Margin="0,8,0,0" />
+            <TextBox Grid.Row="7" Grid.Column="1" Margin="0,8,0,0" Text="{Binding FrequencyPenalty}" />
+
+            <TextBlock Grid.Row="8" Classes="field" Text="presence_penalty" Margin="0,8,0,0" />
+            <TextBox Grid.Row="8" Grid.Column="1" Margin="0,8,0,0" Text="{Binding PresencePenalty}" />
+
+            <TextBlock Grid.Row="9" Classes="field" Text="repetition_penalty" Margin="0,8,0,0" />
+            <TextBox Grid.Row="9" Grid.Column="1" Margin="0,8,0,0" Text="{Binding RepetitionPenalty}" />
+
+            <TextBlock Grid.Row="10" Classes="field" Text="seed" Margin="0,8,0,0" />
+            <TextBox Grid.Row="10" Grid.Column="1" Margin="0,8,0,0" Text="{Binding Seed}" />
+
+            <TextBlock Grid.Row="11" Classes="field" Text="stop" Margin="0,8,0,0" />
+            <TextBox Grid.Row="11" Grid.Column="1" Margin="0,8,0,0" Text="{Binding StopSequence}" />
+          </Grid>
+
+          <TextBlock Text="Extra request parameters (raw JSON object, applied last)" Classes="field" />
+          <TextBox Text="{Binding AdvancedOverridesJson}"
+                   AcceptsReturn="True"
+                   MinHeight="70"
+                   FontFamily="Consolas,Menlo,monospace" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Post-processing prompts" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ComboBox ItemsSource="{Binding PromptOptions}"
+                      SelectedItem="{Binding SelectedPrompt}"
+                      MinWidth="240" />
+            <Button Content="Create new"
+                    Classes="Primary VariantOutlined"
+                    Command="{Binding CreatePromptCommand}" />
+            <Button Content="Delete"
+                    Classes="Error VariantText"
+                    Command="{Binding DeletePromptCommand}"
+                    IsEnabled="{Binding !IsPromptReadOnly}" />
+          </StackPanel>
+
+          <TextBox Text="{Binding PromptTitle}"
+                   PlaceholderText="Prompt title"
+                   IsEnabled="{Binding !IsPromptReadOnly}" />
+
+          <TextBox Text="{Binding PromptInstructions}"
+                   AcceptsReturn="True"
+                   MinHeight="140"
+                   IsEnabled="{Binding !IsPromptReadOnly}"
+                   PlaceholderText="Instructions. Use ${sst_output} where the transcription should be inserted." />
+
+          <TextBlock Text="The built-in prompt cannot be changed or deleted."
+                     Classes="caption"
+                     IsVisible="{Binding IsPromptReadOnly}" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Save prompt"
+                    Classes="Primary VariantFilled"
+                    Command="{Binding SavePromptCommand}"
+                    IsEnabled="{Binding !IsPromptReadOnly}" />
+            <Button Content="Save all settings"
+                    Classes="Primary VariantOutlined"
+                    Command="{Binding SaveCommand}" />
+          </StackPanel>
+
+          <TextBlock Text="{Binding SaveError}" Classes="Error" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding SaveMessage}" Classes="Success" />
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

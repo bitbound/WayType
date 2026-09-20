@@ -1,22 +1,119 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WayType.ViewModels"
+        xmlns:conv="using:WayType.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
         x:Class="WayType.Views.MainWindow"
-        x:DataType="vm:MainViewModel"
+        x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="WayType">
+        Title="WayType"
+        Width="1000"
+        Height="700"
+        Background="{DynamicResource BackgroundBrush}">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainViewModel />
-    </Design.DataContext>
+  <Window.Resources>
+    <conv:ResourceKeyToGeometryConverter x:Key="ResourceKeyToGeometryConverter" />
+  </Window.Resources>
 
-    <TextBox Text="{Binding Greeting}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+  <Window.Styles>
+    <Style Selector="ToggleButton.nav">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
 
+    <Style Selector="ToggleButton.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource DividerLightBrush}" />
+    </Style>
+
+    <Style Selector="ToggleButton.nav:checked">
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+    </Style>
+
+    <Style Selector="ToggleButton.nav:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource PrimaryHoverBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="*,Auto">
+
+    <Grid Grid.Row="0" ColumnDefinitions="190,*">
+
+      <Border Background="{DynamicResource AppbarBackgroundBrush}"
+              BorderBrush="{DynamicResource DividerBrush}"
+              BorderThickness="0,0,1,0">
+        <ItemsControl ItemsSource="{Binding NavigationItems}" Margin="8">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="2" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NavItemViewModel">
+              <ToggleButton Classes="nav"
+                            Command="{Binding NavigateCommand}"
+                            IsChecked="{Binding IsSelected, Mode=OneWay}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="12,10">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <PathIcon Data="{Binding IconKey, Converter={StaticResource ResourceKeyToGeometryConverter}}" />
+                  <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                </StackPanel>
+              </ToggleButton>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+
+      <ContentControl Grid.Column="1"
+                      Content="{Binding CurrentViewModel}"
+                      Padding="20" />
+
+    </Grid>
+
+    <Border Grid.Row="1"
+            Background="{DynamicResource AppbarBackgroundBrush}"
+            BorderBrush="{DynamicResource DividerBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="12,6">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+
+        <PathIcon Grid.Column="0"
+                  Data="{StaticResource mic_on_regular}"
+                  Foreground="{DynamicResource SuccessColor}"
+                  IsVisible="{Binding IsListening}"
+                  Margin="0,0,8,0" />
+
+        <PathIcon Grid.Column="0"
+                  Data="{StaticResource mic_off_regular}"
+                  Foreground="{DynamicResource TextSecondaryBrush}"
+                  IsVisible="{Binding !IsListening}"
+                  Margin="0,0,8,0" />
+
+        <TextBlock Grid.Column="1"
+                   Text="{Binding DictationStatus}"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+
+        <TextBlock Grid.Column="2"
+                   Text="{Binding HotkeyError}"
+                   Classes="Error"
+                   Margin="16,0,0,0"
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" />
+
+        <HyperlinkButton Grid.Column="3"
+                         Content="{Binding UpdateVersion, StringFormat='Update available ({0})'}"
+                         Command="{Binding ApplyUpdateCommand}"
+                         IsVisible="{Binding IsUpdateAvailable}"
+                         VerticalAlignment="Center" />
+
+      </Grid>
+    </Border>
+
+  </Grid>
 </Window>

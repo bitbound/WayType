@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WayType.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="WayType.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+
+  <Grid RowDefinitions="Auto,Auto,*" MaxWidth="820" HorizontalAlignment="Left">
+
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+      <TextBlock Classes="h1" Text="History" VerticalAlignment="Center" />
+      <Button Content="Delete selected"
+              Classes="Error VariantText Small"
+              Command="{Binding DeleteCommand}"
+              IsEnabled="{Binding CanDelete}" />
+      <Button Content="Clear all"
+              Classes="Error VariantText Small"
+              Command="{Binding ClearCommand}"
+              IsEnabled="{Binding HasEntries}" />
+    </StackPanel>
+
+    <TextBlock Grid.Row="1"
+               Text="Nothing transcribed yet."
+               Classes="caption"
+               Margin="0,12,0,0"
+               IsVisible="{Binding !HasEntries}" />
+
+    <ListBox Grid.Row="2"
+             Margin="0,12,0,0"
+             ItemsSource="{Binding Entries}"
+             SelectedItem="{Binding SelectedEntry}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:HistoryItemViewModel">
+          <StackPanel Spacing="4" Margin="0,6">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Text="{Binding Timestamp}" Classes="caption" />
+              <TextBlock Text="{Binding Details}" Classes="caption" />
+            </StackPanel>
+            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Transcription}"
+                       Classes="caption"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding Transcription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+  </Grid>
+</UserControl>

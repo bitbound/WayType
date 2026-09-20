@@ -1,0 +1,85 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Palette adapted from ControlR's default theme. -->
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="PrimaryColor" Color="#2196F3" />
+      <SolidColorBrush x:Key="InfoColor" Color="#89b4f8" />
+      <SolidColorBrush x:Key="SuccessColor" Color="#2cb67d" />
+      <SolidColorBrush x:Key="WarningColor" Color="#facc15" />
+      <SolidColorBrush x:Key="ErrorColor" Color="#f87171" />
+      <SolidColorBrush x:Key="DefaultColor" Color="#DEFFFFFF" />
+
+      <SolidColorBrush x:Key="PrimaryContrastText" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="SuccessContrastText" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="WarningContrastText" Color="#000000" />
+      <SolidColorBrush x:Key="ErrorContrastText" Color="#FFFFFF" />
+
+      <SolidColorBrush x:Key="TextPrimaryBrush" Color="#DEFFFFFF" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#99FFFFFF" />
+      <SolidColorBrush x:Key="TextDisabledBrush" Color="#61FFFFFF" />
+
+      <SolidColorBrush x:Key="BackgroundBrush" Color="#121212" />
+      <SolidColorBrush x:Key="BackgroundGrayBrush" Color="#1E1E1E" />
+      <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1E1E" />
+
+      <SolidColorBrush x:Key="AppbarBackgroundBrush" Color="#1E1E1E" />
+      <SolidColorBrush x:Key="AppbarTextBrush" Color="#DEFFFFFF" />
+
+      <SolidColorBrush x:Key="DividerBrush" Color="#1FFFFFFF" />
+      <SolidColorBrush x:Key="DividerLightBrush" Color="#0FFFFFFF" />
+      <SolidColorBrush x:Key="BorderBrush" Color="#1A000000" />
+
+      <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#332196F3" />
+      <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#552196F3" />
+      <SolidColorBrush x:Key="PrimaryFilledHoverBrush" Color="#3CA3F4" />
+      <SolidColorBrush x:Key="PrimaryFilledPressedBrush" Color="#4DABF5" />
+      <SolidColorBrush x:Key="PrimaryDisabledBrush" Color="#1F2196F3" />
+
+      <SolidColorBrush x:Key="SuccessFilledHoverBrush" Color="#45BF8D" />
+      <SolidColorBrush x:Key="ErrorFilledHoverBrush" Color="#F98282" />
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="PrimaryColor" Color="#2196F3" />
+      <SolidColorBrush x:Key="InfoColor" Color="#0d6efd" />
+      <SolidColorBrush x:Key="SuccessColor" Color="#28a745" />
+      <SolidColorBrush x:Key="WarningColor" Color="#ffc107" />
+      <SolidColorBrush x:Key="ErrorColor" Color="#dc3545" />
+      <SolidColorBrush x:Key="DefaultColor" Color="#DE000000" />
+
+      <SolidColorBrush x:Key="PrimaryContrastText" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="SuccessContrastText" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="WarningContrastText" Color="#000000" />
+      <SolidColorBrush x:Key="ErrorContrastText" Color="#FFFFFF" />
+
+      <SolidColorBrush x:Key="TextPrimaryBrush" Color="#DE000000" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#99000000" />
+      <SolidColorBrush x:Key="TextDisabledBrush" Color="#61000000" />
+
+      <SolidColorBrush x:Key="BackgroundBrush" Color="#FAFAFA" />
+      <SolidColorBrush x:Key="BackgroundGrayBrush" Color="#F5F5F5" />
+      <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+
+      <SolidColorBrush x:Key="AppbarBackgroundBrush" Color="#F0F0F0" />
+      <SolidColorBrush x:Key="AppbarTextBrush" Color="#DE000000" />
+
+      <SolidColorBrush x:Key="DividerBrush" Color="#1F000000" />
+      <SolidColorBrush x:Key="DividerLightBrush" Color="#0F000000" />
+      <SolidColorBrush x:Key="BorderBrush" Color="#1A000000" />
+
+      <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#332196F3" />
+      <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#552196F3" />
+      <SolidColorBrush x:Key="PrimaryFilledHoverBrush" Color="#1E8AE0" />
+      <SolidColorBrush x:Key="PrimaryFilledPressedBrush" Color="#1C7ECC" />
+      <SolidColorBrush x:Key="PrimaryDisabledBrush" Color="#1F2196F3" />
+
+      <SolidColorBrush x:Key="SuccessFilledHoverBrush" Color="#259A3F" />
+      <SolidColorBrush x:Key="ErrorFilledHoverBrush" Color="#CA313F" />
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+</ResourceDictionary>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>WayType.Libraries.Portal</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tmds.DBus" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WayType.Libraries.Core\WayType.Libraries.Core.csproj" />
+    <ProjectReference Include="..\WayType.Libraries.Native.Linux\WayType.Libraries.Native.Linux.csproj" />
+  </ItemGroup>
+
+</Project>

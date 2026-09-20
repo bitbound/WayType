@@ -1,0 +1,112 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="TextBlock.h1">
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.h2">
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.Error">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}" />
+  </Style>
+
+  <Style Selector="TextBlock.Success">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessColor}" />
+  </Style>
+
+  <Style Selector="Border.Card">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
+  <Style Selector="Button.Primary.VariantFilled">
+    <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryContrastText}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.Primary.VariantFilled:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PrimaryFilledHoverBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.Primary.VariantFilled:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PrimaryFilledPressedBrush}" />
+  </Style>
+
+  <Style Selector="Button.Primary.VariantFilled:disabled">
+    <Setter Property="Background" Value="{DynamicResource PrimaryDisabledBrush}" />
+  </Style>
+
+  <Style Selector="Button.Error.VariantFilled">
+    <Setter Property="Background" Value="{DynamicResource ErrorColor}" />
+    <Setter Property="Foreground" Value="{DynamicResource ErrorContrastText}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.Error.VariantFilled:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource ErrorFilledHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.Primary.VariantOutlined">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+  </Style>
+
+  <Style Selector="Button.Primary.VariantOutlined:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PrimaryHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.Primary.VariantText">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.Primary.VariantText:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PrimaryHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.Error.VariantText">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.Default.VariantText">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.Default.VariantText:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DividerLightBrush}" />
+  </Style>
+
+  <Style Selector="Button.Small">
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style Selector="PathIcon">
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="20" />
+  </Style>
+
+</Styles>

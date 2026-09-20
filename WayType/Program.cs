@@ -1,18 +1,23 @@
 ﻿using Avalonia;
-using System;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using WayType.Libraries.Updater;
 
 namespace WayType;
 
-sealed class Program
+internal sealed class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        if (TryRunUpdateHandoff(args))
+        {
+            return;
+        }
 
-    // Avalonia configuration, don't remove; also used by visual designer.
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
+
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
@@ -21,4 +26,22 @@ sealed class Program
 #endif
             .WithInterFont()
             .LogToTrace();
+
+    private static bool TryRunUpdateHandoff(string[] args)
+    {
+        var services = new ServiceCollection();
+
+        services.AddLogging(builder => builder.AddSimpleConsole(options => options.SingleLine = true));
+        services.AddSingleton<UpdateHandoffRunner>();
+
+        using var provider = services.BuildServiceProvider();
+        var runner = provider.GetRequiredService<UpdateHandoffRunner>();
+
+        if (!runner.IsRequested(args))
+        {
+            return false;
+        }
+
+        return runner.RunAsync(args, CancellationToken.None).GetAwaiter().GetResult();
+    }
 }

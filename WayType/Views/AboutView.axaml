@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WayType.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="700"
+             x:Class="WayType.Views.AboutView"
+             x:DataType="vm:AboutViewModel">
+
+  <ScrollViewer>
+    <StackPanel Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
+
+      <TextBlock Classes="h1" Text="About WayType" />
+
+      <Border Classes="Card">
+        <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto,Auto">
+          <TextBlock Grid.Row="0" FontWeight="SemiBold"><Run Text="Version:" /></TextBlock>
+          <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AppVersion}" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" FontWeight="SemiBold" Margin="0,8,0,0">
+            <Run Text="Project:" />
+          </TextBlock>
+          <HyperlinkButton Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"
+                           Content="{Binding RepositoryUrl}"
+                           Command="{Binding OpenUrlCommand}"
+                           CommandParameter="{Binding RepositoryUrl}" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" FontWeight="SemiBold" Margin="0,8,0,0">
+            <Run Text="Issues:" />
+          </TextBlock>
+          <HyperlinkButton Grid.Row="2" Grid.Column="1" Margin="0,8,0,0"
+                           Content="Report a bug or request a feature"
+                           Command="{Binding OpenUrlCommand}"
+                           CommandParameter="{Binding IssuesUrl}" />
+
+          <TextBlock Grid.Row="3" Grid.Column="0" FontWeight="SemiBold" Margin="0,8,0,0">
+            <Run Text="License:" />
+          </TextBlock>
+          <HyperlinkButton Grid.Row="3" Grid.Column="1" Margin="0,8,0,0"
+                           Content="MIT"
+                           Command="{Binding OpenUrlCommand}"
+                           CommandParameter="{Binding LicenseUrl}" />
+        </Grid>
+      </Border>
+
+      <Border Classes="Card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="Open-source libraries" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Avalonia" MinWidth="220" />
+            <HyperlinkButton Content="Source" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/AvaloniaUI/Avalonia" />
+            <HyperlinkButton Content="License" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/AvaloniaUI/Avalonia/blob/master/LICENSE" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Community Toolkit MVVM" MinWidth="220" />
+            <HyperlinkButton Content="Source" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/CommunityToolkit/dotnet" />
+            <HyperlinkButton Content="License" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/CommunityToolkit/dotnet/blob/main/LICENSE" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Tmds.DBus" MinWidth="220" />
+            <HyperlinkButton Content="Source" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/tmds/Tmds.DBus" />
+            <HyperlinkButton Content="License" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/tmds/Tmds.DBus/blob/main/LICENSE" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text=".NET and Microsoft.Extensions" MinWidth="220" />
+            <HyperlinkButton Content="Source" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/dotnet/runtime" />
+            <HyperlinkButton Content="License" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/dotnet/runtime/blob/main/LICENSE.TXT" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="PipeWire and PulseAudio" MinWidth="220" />
+            <HyperlinkButton Content="Source" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://gitlab.freedesktop.org/pipewire/pipewire" />
+            <HyperlinkButton Content="License" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/LICENSE" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="xkbcommon" MinWidth="220" />
+            <HyperlinkButton Content="Source" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/xkbcommon/libxkbcommon" />
+            <HyperlinkButton Content="License" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/xkbcommon/libxkbcommon/blob/master/LICENSE" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="xdg-desktop-portal" MinWidth="220" />
+            <HyperlinkButton Content="Source" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/flatpak/xdg-desktop-portal" />
+            <HyperlinkButton Content="License" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/flatpak/xdg-desktop-portal/blob/main/COPYING" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Fluent UI System Icons" MinWidth="220" />
+            <HyperlinkButton Content="Source" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/microsoft/fluentui-system-icons" />
+            <HyperlinkButton Content="License" Classes="Small" Command="{Binding OpenUrlCommand}"
+                             CommandParameter="https://github.com/microsoft/fluentui-system-icons/blob/main/LICENSE" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
