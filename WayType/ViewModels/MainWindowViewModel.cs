@@ -156,6 +156,8 @@ public partial class MainWindowViewModel : ViewModelBase<MainWindow>, IMainWindo
     // rebind. Saving something else leaves the existing binding alone.
     private void RebindHotkeyIfChanged()
     {
+        HotkeyError = null;
+
         if (string.Equals(HotkeySignature(), _boundHotkeySignature, StringComparison.Ordinal))
         {
             return;

@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\..\WayType\Assets\appicon.png"
+                      LogicalName="WayType.Libraries.Portal.AppIcon.png" />
     <!-- Hotkey capture in the app can only be trusted to produce shortcuts this library accepts by testing both halves. -->
     <InternalsVisibleTo Include="WayType.Tests" />
   </ItemGroup>

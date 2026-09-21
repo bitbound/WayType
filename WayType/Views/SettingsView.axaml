@@ -138,6 +138,15 @@
 
             <CheckBox Content="Check GitHub Releases for updates"
                       IsChecked="{Binding CheckForUpdates}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Create application shortcut"
+                      Classes="Primary VariantOutlined"
+                      Command="{Binding CreateShortcutCommand}" />
+              <TextBlock Text="{Binding ShortcutMessage}"
+                         Classes="Success"
+                         VerticalAlignment="Center" />
+            </StackPanel>
           </StackPanel>
         </Border>
 

@@ -39,13 +39,18 @@ public sealed class PortalGlobalHotkeySource : IGlobalHotkeySource
     private volatile bool _isConnected;
     private int _supportState;
 
-    public PortalGlobalHotkeySource(IRestoreTokenStore tokens, IPlatformPaths paths, IAppInfo appInfo, ILogger<PortalGlobalHotkeySource> logger)
+    public PortalGlobalHotkeySource(
+        IRestoreTokenStore tokens,
+        IPlatformPaths paths,
+        IAppInfo appInfo,
+        DesktopEntryInstaller desktopEntry,
+        ILogger<PortalGlobalHotkeySource> logger)
     {
         _tokens = tokens;
         _paths = paths;
         _appInfo = appInfo;
+        _desktopEntry = desktopEntry;
         _logger = logger;
-        _desktopEntry = new DesktopEntryInstaller(appInfo, logger);
         _initializeTask = InitializeAsync();
     }
 

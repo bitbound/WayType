@@ -7,6 +7,7 @@ using WayType.Libraries.Core.Input;
 using WayType.Libraries.Core.Prompts;
 using WayType.Libraries.Core.Settings;
 using WayType.Libraries.Core.Speech;
+using WayType.Libraries.Portal;
 using WayType.Views;
 
 namespace WayType.ViewModels;
@@ -19,6 +20,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     private readonly ISettingsService _settings;
     private readonly ISpeechToTextClient _speechToText;
     private readonly ITextGenerationClient _textGeneration;
+    private readonly DesktopEntryInstaller _desktopEntry;
     private readonly FileLoggerProvider _fileLogger;
     private readonly LogLevelSwitch _logLevel;
 
@@ -183,6 +185,9 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     [ObservableProperty]
     private string? _saveError;
 
+    [ObservableProperty]
+    private string? _shortcutMessage;
+
     private DispatcherTimer? _saveMessageTimer;
 
     public SettingsViewModel(
@@ -192,6 +197,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         IPromptService prompts,
         ISpeechToTextClient speechToText,
         ITextGenerationClient textGeneration,
+        DesktopEntryInstaller desktopEntry,
         FileLoggerProvider fileLogger,
         LogLevelSwitch logLevel)
     {
@@ -201,6 +207,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         _prompts = prompts;
         _speechToText = speechToText;
         _textGeneration = textGeneration;
+        _desktopEntry = desktopEntry;
         _fileLogger = fileLogger;
         _logLevel = logLevel;
     }
@@ -295,6 +302,14 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         await _injector.RevokeGrantAsync();
         IsPermissionGranted = false;
         PermissionMessage = "Stored permission cleared.";
+    }
+
+    [RelayCommand]
+    private void CreateShortcut()
+    {
+        ShortcutMessage = _desktopEntry.TryInstall(showInApplicationMenu: true)
+            ? "WayType was added to the application menu."
+            : "WayType could not create the application shortcut.";
     }
 
     [RelayCommand]

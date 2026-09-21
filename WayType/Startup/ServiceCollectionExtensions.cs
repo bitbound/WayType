@@ -72,6 +72,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITextGenerationClient, OpenAiTextGenerationClient>();
 
         services.AddSingleton<ITextInputInjector, RemoteDesktopTextInjector>();
+        services.AddSingleton<DesktopEntryInstaller>();
         services.AddSingleton<IGlobalHotkeySource, PortalGlobalHotkeySource>();
         services.AddSingleton<ISystemColorSchemeSource, PortalSystemColorSchemeSource>();
 

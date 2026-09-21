@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using WayType.Libraries.Core.Platform;
@@ -12,11 +13,17 @@ namespace WayType.Libraries.Portal;
 /// exist before the first portal call. Exec is checked against the portal daemon's own PATH, so it has
 /// to be an absolute path rather than a bare program name.
 /// </remarks>
-internal sealed class DesktopEntryInstaller(IAppInfo appInfo, ILogger logger)
+public sealed class DesktopEntryInstaller(
+    IAppInfo appInfo,
+    IPlatformPaths paths,
+    ILogger<DesktopEntryInstaller> logger)
 {
+    private const string LegacyAppId = "io.github.bitbound.waytype";
+    private const string IconResourceName = "WayType.Libraries.Portal.AppIcon.png";
+
     public string DesktopFilePath => Path.Combine(ApplicationsDirectory(), $"{appInfo.AppId}.desktop");
 
-    public bool TryInstall()
+    public bool TryInstall(bool showInApplicationMenu = false)
     {
         var exec = Environment.ProcessPath;
 
@@ -28,14 +35,23 @@ internal sealed class DesktopEntryInstaller(IAppInfo appInfo, ILogger logger)
 
         var directory = ApplicationsDirectory();
         var path = Path.Combine(directory, $"{appInfo.AppId}.desktop");
-        var contents = Build(appInfo.ProductName, appInfo.AppId, exec);
 
         try
         {
             // Rewritten each launch so Exec keeps pointing at the binary that is running, which matters while
             // the single-file build moves between output directories.
             Directory.CreateDirectory(directory);
+            var iconPath = ExtractIcon();
+            var contents = Build(
+                appInfo.ProductName,
+                appInfo.AppId,
+                exec,
+                showInApplicationMenu || IsVisibleEntry(path),
+                iconPath);
+
             File.WriteAllText(path, contents);
+            RemoveLegacyEntry(directory);
+            RefreshDesktopDatabase(directory);
 
             logger.LogInformation("Wrote the portal desktop entry to {Path}.", path);
 
@@ -48,7 +64,12 @@ internal sealed class DesktopEntryInstaller(IAppInfo appInfo, ILogger logger)
         }
     }
 
-    internal static string Build(string productName, string applicationId, string execPath)
+    internal static string Build(
+        string productName,
+        string applicationId,
+        string execPath,
+        bool showInApplicationMenu = false,
+        string? iconPath = null)
     {
         var builder = new StringBuilder();
 
@@ -61,15 +82,91 @@ internal sealed class DesktopEntryInstaller(IAppInfo appInfo, ILogger logger)
             .AppendLine($"Exec={execPath}")
             .AppendLine($"TryExec={execPath}")
             .AppendLine($"StartupWMClass={applicationId}")
-            .AppendLine("Icon=waytype")
+            .AppendLine($"Icon={iconPath ?? "waytype"}")
             .AppendLine("Terminal=false")
             .AppendLine("Categories=Utility;Accessibility;")
 
-            // This entry exists to give the portal an id, not to add a launcher icon for a binary that
-            // moves between build folders during development.
-            .AppendLine("NoDisplay=true");
+            .AppendLine($"NoDisplay={(!showInApplicationMenu).ToString().ToLowerInvariant()}");
 
         return builder.ToString();
+    }
+
+    private static bool IsVisibleEntry(string path)
+    {
+        try
+        {
+            return File.Exists(path) && File.ReadLines(path).Any(line => string.Equals(line, "NoDisplay=false", StringComparison.Ordinal));
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private string? ExtractIcon()
+    {
+        var iconPath = Path.Combine(paths.ConfigDirectory, "appicon.png");
+
+        try
+        {
+            Directory.CreateDirectory(paths.ConfigDirectory);
+            var resource = typeof(DesktopEntryInstaller).Assembly.GetManifestResourceStream(IconResourceName);
+
+            if (resource is null)
+            {
+                logger.LogWarning("The embedded WayType application icon could not be found.");
+                return null;
+            }
+
+            using (resource)
+            using (var target = new FileStream(iconPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            {
+                resource.CopyTo(target);
+            }
+
+            return iconPath;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(exception, "The WayType application icon could not be extracted to {Path}.", iconPath);
+            return null;
+        }
+    }
+
+    private void RemoveLegacyEntry(string directory)
+    {
+        var legacyPath = Path.Combine(directory, $"{LegacyAppId}.desktop");
+
+        try
+        {
+            File.Delete(legacyPath);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            logger.LogDebug(exception, "The legacy desktop entry could not be removed from {Path}.", legacyPath);
+        }
+    }
+
+    private void RefreshDesktopDatabase(string directory)
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "update-desktop-database",
+                Arguments = $"\"{directory}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            logger.LogDebug(exception, "The desktop entry database could not be refreshed.");
+        }
     }
 
     private static string ApplicationsDirectory()
