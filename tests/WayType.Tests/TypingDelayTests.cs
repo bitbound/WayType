@@ -11,11 +11,11 @@ namespace WayType.Tests;
 public class TypingDelayTests
 {
     [Fact]
-    public void DefaultTypingDelay_IsTenMilliseconds()
+    public void DefaultTypingDelay_IsTwoMilliseconds()
     {
-        // Pinned deliberately. A lower default was tried and typed nothing, so this value is the one
-        // that has actually been seen to work.
-        Assert.Equal(10, AppSettings.DefaultTypingDelayMs);
+        // Verified working on KWin Wayland through XWayland. A failing injection is far more likely
+        // to be an overlay window stealing focus than this value being too low.
+        Assert.Equal(2, AppSettings.DefaultTypingDelayMs);
     }
 
     [Fact]

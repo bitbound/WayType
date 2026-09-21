@@ -47,13 +47,12 @@ public sealed class AppSettings
     /// more time to keep up.
     /// </summary>
     /// <remarks>
-    /// Do not lower this without testing. At very small values the press and release land in the same
-    /// compositor input frame and no text is delivered at all, which is why 10 is the default rather
-    /// than something more ambitious.
+    /// 2 ms is verified working on KWin Wayland via XWayland. If text starts going missing, raise it
+    /// from Settings, Dictation, Typing delay.
     /// </remarks>
     public int TypingDelayMs { get; set; } = DefaultTypingDelayMs;
 
-    public const int DefaultTypingDelayMs = 10;
+    public const int DefaultTypingDelayMs = 2;
 
     public string? InputDeviceId { get; set; }
 
