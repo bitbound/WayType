@@ -1,6 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace WayType.Libraries.Portal;
 
 /// <summary>
-/// The shortcut ids the portal assigned, persisted so the next launch can reuse the registration.
+/// The portal's shortcut registration, persisted so the next launch reactivates the same entry.
 /// </summary>
-internal sealed record HotkeyRegistration(string[] ShortcutIds);
+/// <param name="ShortcutIds">The shortcut ids the portal assigned.</param>
+/// <param name="Trigger">The normalized trigger those ids were last bound to.</param>
+internal sealed record HotkeyRegistration(
+    [property: JsonPropertyName("shortcutIds")] string[] ShortcutIds,
+    [property: JsonPropertyName("trigger")] string? Trigger);

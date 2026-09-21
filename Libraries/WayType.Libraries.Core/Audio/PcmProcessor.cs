@@ -82,6 +82,25 @@ public static class PcmProcessor
         return bytes;
     }
 
+    /// <summary>
+    /// Widens little-endian signed 16-bit PCM to the float range the audio server takes.
+    /// </summary>
+    public static float[] ToFloat32(byte[] pcm16Bit)
+    {
+        ArgumentNullException.ThrowIfNull(pcm16Bit);
+
+        var sampleCount = pcm16Bit.Length / 2;
+        var samples = new float[sampleCount];
+
+        for (var index = 0; index < sampleCount; index++)
+        {
+            var value = (short)(pcm16Bit[index * 2] | (pcm16Bit[(index * 2) + 1] << 8));
+            samples[index] = Math.Clamp(value / (float)short.MaxValue, -1f, 1f);
+        }
+
+        return samples;
+    }
+
     public static byte[] ToMono16BitPcm(PcmAudio audio, int targetSampleRate = TargetSampleRate)
     {
         if (audio.ChannelCount == 0 || audio.InterleavedSamples.Length == 0)

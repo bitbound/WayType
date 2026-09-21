@@ -4,6 +4,9 @@ public interface IAppInfo
 {
     string ProductName { get; }
 
+    // Reverse-DNS identity the desktop portals scope permissions and global shortcuts to.
+    string AppId { get; }
+
     Version Version { get; }
 
     string RepositoryUrl { get; }

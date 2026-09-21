@@ -24,6 +24,14 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddWayType(this IServiceCollection services)
     {
+        // Built up front because logging needs the path before the container exists, and the same
+        // instance is registered below so every consumer sees one set of paths.
+        var paths = new PlatformPaths();
+        var logLevel = new LogLevelSwitch(LogLevel.Information);
+        var fileLogger = new FileLoggerProvider(paths.ConfigDirectory, logLevel);
+
+        // The app is a windowed executable with no console attached, so the file sink is the only
+        // place diagnostics survive. The console sink is kept for running from a terminal.
         services.AddLogging(builder =>
         {
             builder.AddSimpleConsole(options =>
@@ -31,10 +39,14 @@ public static class ServiceCollectionExtensions
                 options.SingleLine = true;
                 options.TimestampFormat = "HH:mm:ss ";
             });
-            builder.SetMinimumLevel(LogLevel.Information);
+            builder.AddProvider(fileLogger);
+            builder.AddFilter((_, level) => logLevel.IsEnabled(level));
         });
 
-        services.AddSingleton<IPlatformPaths, PlatformPaths>();
+        services.AddSingleton(logLevel);
+        services.AddSingleton(fileLogger);
+
+        services.AddSingleton<IPlatformPaths>(paths);
         services.AddSingleton<IFileStore, LocalFileStore>();
         services.AddSingleton<IRestoreTokenStore, FileRestoreTokenStore>();
         services.AddSingleton<IAppInfo, AssemblyAppInfo>();
@@ -45,11 +57,13 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IPromptService, PromptService>();
+        services.AddSingleton<IRecordingStore, RecordingStore>();
         services.AddSingleton<IHistoryService, HistoryService>();
 
         services.AddSingleton<IKeysymResolver, XkbKeysymResolver>();
         services.AddSingleton<IKeycodeResolver, EvdevKeycodeResolver>();
         services.AddSingleton<IAudioRecorder, PulseAudioRecorder>();
+        services.AddSingleton<IAudioPlayer, PulseAudioPlayer>();
         services.AddSingleton<IAudioCaptureDeviceEnumerator, PulseAudioDeviceEnumerator>();
 
         services.AddSingleton<ISpeechToTextClient, OpenAiSpeechToTextClient>();
@@ -63,6 +77,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<UpdateHandoffRunner>();
 
         services.AddSingleton<IDictationCoordinator, DictationCoordinator>();
+        services.AddSingleton<IStatusOverlayController, StatusOverlayController>();
 
         services.AddSingleton<IThemeProvider, ThemeProvider>();
         services.AddSingleton<INavigationProvider, NavigationProvider>();

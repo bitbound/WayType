@@ -27,4 +27,20 @@
     <StyleInclude Source="/Resources/Styles.axaml" />
   </Application.Styles>
 
+  <TrayIcon.Icons>
+    <TrayIcons>
+      <TrayIcon Icon="/Assets/appicon.png"
+                ToolTipText="WayType"
+                Clicked="OnTrayIconClicked">
+        <TrayIcon.Menu>
+          <NativeMenu>
+            <NativeMenuItem Header="Open WayType" Click="OnTrayOpenClick" />
+            <NativeMenuItemSeparator />
+            <NativeMenuItem Header="Quit WayType" Click="OnTrayQuitClick" />
+          </NativeMenu>
+        </TrayIcon.Menu>
+      </TrayIcon>
+    </TrayIcons>
+  </TrayIcon.Icons>
+
 </Application>

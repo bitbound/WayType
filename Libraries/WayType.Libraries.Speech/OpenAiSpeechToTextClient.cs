@@ -11,6 +11,12 @@ namespace WayType.Libraries.Speech;
 /// </summary>
 public sealed class OpenAiSpeechToTextClient(HttpClient httpClient, ISettingsService settings, ILogger<OpenAiSpeechToTextClient> logger) : ISpeechToTextClient
 {
+    /// <summary>
+    /// Uploading a recording and waiting for a transcript. Generous, because a long take against a
+    /// busy local model can take a while.
+    /// </summary>
+    private static readonly TimeSpan TranscriptionTimeout = TimeSpan.FromMinutes(5);
+
     public async Task<string> TranscribeAsync(byte[] wavBytes, CancellationToken cancellationToken = default)
     {
         var speech = settings.Current.SpeechToText;
@@ -25,7 +31,7 @@ public sealed class OpenAiSpeechToTextClient(HttpClient httpClient, ISettingsSer
         request.Content = BuildForm(model, speech.Language, wavBytes);
         AiEndpointRequests.ApplyAuthorization(request, speech.ApiKey);
 
-        var body = await AiEndpointRequests.SendAsync(httpClient, request, logger, cancellationToken).ConfigureAwait(false);
+        var body = await AiEndpointRequests.SendAsync(httpClient, request, logger, TranscriptionTimeout, cancellationToken).ConfigureAwait(false);
 
         using var document = AiEndpointRequests.ParseResponse(body);
 
@@ -41,11 +47,9 @@ public sealed class OpenAiSpeechToTextClient(HttpClient httpClient, ISettingsSer
         return (text ?? string.Empty).Trim();
     }
 
-    public Task<IReadOnlyList<AiModel>> ListModelsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AiModel>> ListModelsAsync(string? endpoint, string? apiKey, CancellationToken cancellationToken = default)
     {
-        var speech = settings.Current.SpeechToText;
-
-        return AiEndpointRequests.ListModelsAsync(httpClient, speech.Endpoint, speech.ApiKey, logger, cancellationToken);
+        return AiEndpointRequests.ListModelsAsync(httpClient, endpoint, apiKey, logger, cancellationToken);
     }
 
     private static MultipartFormDataContent BuildForm(string model, string? language, byte[] wavBytes)

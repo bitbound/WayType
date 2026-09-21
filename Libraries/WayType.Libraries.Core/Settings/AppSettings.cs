@@ -35,6 +35,11 @@ public sealed class AppSettings
 
     public int HistoryItemsToKeep { get; set; } = 50;
 
+    /// <summary>
+    /// Keeps the captured WAV next to each history entry so it can be played back.
+    /// </summary>
+    public bool KeepRecordings { get; set; } = true;
+
     public int MaximumRecordingSeconds { get; set; } = 120;
 
     public string? InputDeviceId { get; set; }
@@ -42,6 +47,11 @@ public sealed class AppSettings
     public string? InputDeviceName { get; set; }
 
     public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>
+    /// Raises the log level to Debug so audio capture and portal activity are recorded.
+    /// </summary>
+    public bool DebugLogging { get; set; }
 
     public SpeechToTextSettings SpeechToText { get; set; } = new();
 

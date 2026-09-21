@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
         x:Class="WayType.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/appicon.png"
         Title="WayType"
         Width="1000"
         Height="700"
@@ -69,9 +69,11 @@
         </ItemsControl>
       </Border>
 
+      <!-- No padding here. Each view owns its own insets so a view can lay a bar flush to the
+           navigation rail on the left and the status bar below. -->
       <ContentControl Grid.Column="1"
                       Content="{Binding CurrentViewModel}"
-                      Padding="20" />
+                      Padding="0" />
 
     </Grid>
 

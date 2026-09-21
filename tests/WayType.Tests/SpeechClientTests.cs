@@ -90,14 +90,26 @@ public class OpenAiSpeechToTextClientTests
     [Fact]
     public async Task ListModelsAsync_WhenEndpointAlreadyCarriesV1_RequestsModelsOnce()
     {
-        var (client, handler) = Create(Speech(endpoint: "https://api.example.test/v1/"), _ => StubHttpMessageHandler.Json(
+        var (client, handler) = Create(Speech(), _ => StubHttpMessageHandler.Json(
             """{"data":[{"id":"whisper-1","owned_by":"openai"},{"id":"groq-whisper","owned_by":"groq"}]}"""));
 
-        var models = await client.ListModelsAsync(TestContext.Current.CancellationToken);
+        var models = await client.ListModelsAsync("https://api.example.test/v1/", "secret-key", TestContext.Current.CancellationToken);
 
         Assert.Equal("https://api.example.test/v1/models", handler.RequestUris[0]);
         Assert.Equal(["whisper-1", "groq-whisper"], models.Select(model => model.Id));
         Assert.Equal("groq", models[1].OwnedBy);
+    }
+
+    [Fact]
+    public async Task ListModelsAsync_WhenCalledWithTypedEndpoint_IgnoresTheSavedEndpoint()
+    {
+        var (client, handler) = Create(Speech(endpoint: "https://saved.example.test"), _ => StubHttpMessageHandler.Json(
+            """{"data":[{"id":"whisper-1","owned_by":"openai"}]}"""));
+
+        await client.ListModelsAsync("https://typed.example.test", "typed-key", TestContext.Current.CancellationToken);
+
+        Assert.Equal("https://typed.example.test/v1/models", handler.RequestUris[0]);
+        Assert.Equal("Bearer typed-key", handler.AuthorizationValues[0]);
     }
 
     private static AppSettings Speech(string endpoint = "https://api.example.test")
@@ -232,11 +244,41 @@ public class OpenAiTextGenerationClientTests
         Assert.Contains("not valid JSON", exception.Message);
     }
 
+    [Fact]
+    public async Task CompleteAsync_WhenTheModelExceedsTheConfiguredTimeout_ReportsATimeout()
+    {
+        var settings = Post();
+        settings.PostProcessing.TimeoutSeconds = 1;
+
+        var (client, handler) = Create(settings, _ => StubHttpMessageHandler.Json(Choice("x")));
+        handler.Delay = TimeSpan.FromSeconds(30);
+
+        var exception = await Assert.ThrowsAsync<AiEndpointException>(
+            () => client.CompleteAsync("prompt", TestContext.Current.CancellationToken));
+
+        Assert.Contains("did not answer within 1s", exception.Message);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_WithinTheConfiguredTimeout_Succeeds()
+    {
+        // The same delay that fails above passes here, which is what makes the setting meaningful
+        // rather than a hard coded ceiling.
+        var settings = Post();
+        settings.PostProcessing.TimeoutSeconds = 30;
+
+        var (client, handler) = Create(settings, _ => StubHttpMessageHandler.Json(Choice("cleaned")));
+        handler.Delay = TimeSpan.FromSeconds(1);
+
+        var text = await client.CompleteAsync("prompt", TestContext.Current.CancellationToken);
+
+        Assert.Equal("cleaned", text);
+    }
+
     private static string Choice(string content)
     {
         return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"" + content + "\"}}]}";
     }
-
     private static AppSettings Post(string endpoint = "https://text.example.test")
     {
         return new AppSettings

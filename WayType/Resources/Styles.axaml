@@ -34,6 +34,30 @@
     <Setter Property="Padding" Value="16" />
   </Style>
 
+  <Style Selector="Border.Footer">
+    <Setter Property="Background" Value="{DynamicResource FooterBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="20,10" />
+  </Style>
+
+  <Style Selector="Border.HotkeyField">
+    <Setter Property="Background" Value="{DynamicResource BackgroundGrayBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="ToggleButton.Icon">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="4,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+
   <Style Selector="Button.Primary.VariantFilled">
     <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
     <Setter Property="Foreground" Value="{DynamicResource PrimaryContrastText}" />

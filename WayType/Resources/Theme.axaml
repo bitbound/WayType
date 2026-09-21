@@ -24,6 +24,7 @@
       <SolidColorBrush x:Key="BackgroundBrush" Color="#121212" />
       <SolidColorBrush x:Key="BackgroundGrayBrush" Color="#1E1E1E" />
       <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1E1E" />
+      <SolidColorBrush x:Key="FooterBrush" Color="#181818" />
 
       <SolidColorBrush x:Key="AppbarBackgroundBrush" Color="#1E1E1E" />
       <SolidColorBrush x:Key="AppbarTextBrush" Color="#DEFFFFFF" />
@@ -40,6 +41,9 @@
 
       <SolidColorBrush x:Key="SuccessFilledHoverBrush" Color="#45BF8D" />
       <SolidColorBrush x:Key="ErrorFilledHoverBrush" Color="#F98282" />
+
+      <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#F22B2B2B" />
+      <SolidColorBrush x:Key="OverlayBorderBrush" Color="#33FFFFFF" />
     </ResourceDictionary>
 
     <ResourceDictionary x:Key="Light">
@@ -62,6 +66,7 @@
       <SolidColorBrush x:Key="BackgroundBrush" Color="#FAFAFA" />
       <SolidColorBrush x:Key="BackgroundGrayBrush" Color="#F5F5F5" />
       <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="FooterBrush" Color="#EFEFEF" />
 
       <SolidColorBrush x:Key="AppbarBackgroundBrush" Color="#F0F0F0" />
       <SolidColorBrush x:Key="AppbarTextBrush" Color="#DE000000" />
@@ -78,6 +83,9 @@
 
       <SolidColorBrush x:Key="SuccessFilledHoverBrush" Color="#259A3F" />
       <SolidColorBrush x:Key="ErrorFilledHoverBrush" Color="#CA313F" />
+
+      <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#F2FFFFFF" />
+      <SolidColorBrush x:Key="OverlayBorderBrush" Color="#33000000" />
     </ResourceDictionary>
 
   </ResourceDictionary.ThemeDictionaries>

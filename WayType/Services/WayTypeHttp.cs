@@ -17,14 +17,16 @@ public sealed class WayTypeHttp : IDisposable
             PooledConnectionLifetime = TimeSpan.FromMinutes(10),
         };
 
+        // No client-level timeout. Each request carries its own budget, which is what lets the
+        // post-processing timeout be raised past what a shared client timeout would allow.
         ForSpeech = new HttpClient(_handler, disposeHandler: false)
         {
-            Timeout = TimeSpan.FromMinutes(5),
+            Timeout = Timeout.InfiniteTimeSpan,
         };
 
         ForText = new HttpClient(_handler, disposeHandler: false)
         {
-            Timeout = TimeSpan.FromMinutes(2),
+            Timeout = Timeout.InfiniteTimeSpan,
         };
     }
 

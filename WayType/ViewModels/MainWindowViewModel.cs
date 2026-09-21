@@ -24,6 +24,9 @@ public partial class MainWindowViewModel : ViewModelBase<MainWindow>, IMainWindo
     private readonly ISettingsService _settings;
     private readonly IUpdateService _updates;
 
+    private string? _boundHotkeySignature;
+    private bool _isBindingHotkey;
+
     [ObservableProperty]
     private IViewModelBase? _currentViewModel;
 
@@ -65,6 +68,9 @@ public partial class MainWindowViewModel : ViewModelBase<MainWindow>, IMainWindo
 
         _dictation.StateChanged += (_, _) => Dispatcher.UIThread.Post(RefreshDictationStatus);
         _hotkeys.Activated += (_, _) => Dispatcher.UIThread.Post(OnHotkeyActivated);
+        _hotkeys.Deactivated += (_, _) => Dispatcher.UIThread.Post(OnHotkeyDeactivated);
+        _hotkeys.BindingLost += (_, _) => Dispatcher.UIThread.Post(OnHotkeyBindingLost);
+        _settings.SettingsChanged += (_, _) => Dispatcher.UIThread.Post(RebindHotkeyIfChanged);
         _updates.UpdateAvailable += (_, info) => Dispatcher.UIThread.Post(() => ShowUpdate(info));
     }
 
@@ -101,9 +107,17 @@ public partial class MainWindowViewModel : ViewModelBase<MainWindow>, IMainWindo
 
     private async Task StartHotkeyAsync()
     {
-        HotkeyError = _settings.Current.TriggerMode == ShortcutTriggerMode.Press
-            ? "Hold-to-talk needs a key release event, which the portal shortcut API does not deliver. Tap mode is used instead."
-            : null;
+        // A rebind can be requested from the D-Bus callback, the settings save, or startup, so only
+        // one may be in flight or the portal ends up with several live sessions for one app id.
+        if (_isBindingHotkey)
+        {
+            return;
+        }
+
+        _isBindingHotkey = true;
+        HotkeyError = null;
+
+        var signature = HotkeySignature();
 
         try
         {
@@ -112,12 +126,47 @@ public partial class MainWindowViewModel : ViewModelBase<MainWindow>, IMainWindo
             if (!bound)
             {
                 HotkeyError = "The compositor rejected the shortcut. Check the log for the portal response.";
+                return;
             }
+
+            _boundHotkeySignature = signature;
+            HotkeyError = null;
         }
         catch (Exception ex)
         {
             HotkeyError = ex.Message;
         }
+        finally
+        {
+            _isBindingHotkey = false;
+        }
+    }
+
+    // A dropped session bus leaves the shortcut unregistered with no other symptom, so the binding is
+    // restored rather than left silently dead.
+    private void OnHotkeyBindingLost()
+    {
+        HotkeyError = "The desktop session connection dropped. Rebinding the shortcut.";
+        _boundHotkeySignature = null;
+
+        _ = StartHotkeyAsync();
+    }
+
+    // Saving settings is the only way the hotkey changes, so a save with a different shortcut has to
+    // rebind. Saving something else leaves the existing binding alone.
+    private void RebindHotkeyIfChanged()
+    {
+        if (string.Equals(HotkeySignature(), _boundHotkeySignature, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _ = StartHotkeyAsync();
+    }
+
+    private string HotkeySignature()
+    {
+        return $"{_settings.Current.Hotkey}|{_settings.Current.TriggerMode}";
     }
 
     private async Task CheckForUpdatesAsync()
@@ -150,7 +199,25 @@ public partial class MainWindowViewModel : ViewModelBase<MainWindow>, IMainWindo
 
     private void OnHotkeyActivated()
     {
+        if (_settings.Current.TriggerMode == ShortcutTriggerMode.Press)
+        {
+            _ = _dictation.StartAsync();
+            return;
+        }
+
         _ = _dictation.ToggleAsync();
+    }
+
+    // A portal backend can also send Deactivated when a registration goes away, so only honour it while a
+    // hold-to-talk capture is actually open.
+    private void OnHotkeyDeactivated()
+    {
+        if (_settings.Current.TriggerMode != ShortcutTriggerMode.Press || !_dictation.IsListening)
+        {
+            return;
+        }
+
+        _ = _dictation.StopAsync();
     }
 
     private void RefreshDictationStatus()

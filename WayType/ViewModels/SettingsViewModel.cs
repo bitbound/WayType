@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Logging;
 using WayType.Libraries.Core.Audio;
 using WayType.Libraries.Core.Input;
 using WayType.Libraries.Core.Prompts;
@@ -18,6 +19,8 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     private readonly ISettingsService _settings;
     private readonly ISpeechToTextClient _speechToText;
     private readonly ITextGenerationClient _textGeneration;
+    private readonly FileLoggerProvider _fileLogger;
+    private readonly LogLevelSwitch _logLevel;
 
     [ObservableProperty]
     private bool _isPermissionGranted;
@@ -32,7 +35,15 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     private string? _permissionMessage;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HotkeyDisplay))]
     private string _hotkey = AppSettings.DefaultHotkey;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HotkeyDisplay))]
+    private bool _isCapturingHotkey;
+
+    [ObservableProperty]
+    private string? _hotkeyCaptureMessage;
 
     [ObservableProperty]
     private string _triggerModeName = "Tap";
@@ -44,10 +55,16 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     private int _historyItemsToKeep = 50;
 
     [ObservableProperty]
+    private bool _keepRecordings = true;
+
+    [ObservableProperty]
     private int _maximumRecordingSeconds = 120;
 
     [ObservableProperty]
     private bool _checkForUpdates = true;
+
+    [ObservableProperty]
+    private bool _debugLogging;
 
     [ObservableProperty]
     private ObservableCollection<DeviceOption> _deviceOptions = [];
@@ -68,9 +85,6 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     private ObservableCollection<string> _speechModels = [];
 
     [ObservableProperty]
-    private string? _selectedSpeechModel;
-
-    [ObservableProperty]
     private bool _isLoadingSpeechModels;
 
     [ObservableProperty]
@@ -78,6 +92,9 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
 
     [ObservableProperty]
     private bool _postProcessingEnabled;
+
+    [ObservableProperty]
+    private int _postTimeoutSeconds = PostProcessingSettings.DefaultTimeoutSeconds;
 
     [ObservableProperty]
     private string? _postEndpoint;
@@ -90,9 +107,6 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
 
     [ObservableProperty]
     private ObservableCollection<string> _postModels = [];
-
-    [ObservableProperty]
-    private string? _selectedPostModel;
 
     [ObservableProperty]
     private bool _isLoadingPostModels;
@@ -166,13 +180,17 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     [ObservableProperty]
     private string? _saveError;
 
+    private DispatcherTimer? _saveMessageTimer;
+
     public SettingsViewModel(
         ISettingsService settings,
         ITextInputInjector injector,
         IAudioCaptureDeviceEnumerator devices,
         IPromptService prompts,
         ISpeechToTextClient speechToText,
-        ITextGenerationClient textGeneration)
+        ITextGenerationClient textGeneration,
+        FileLoggerProvider fileLogger,
+        LogLevelSwitch logLevel)
     {
         _settings = settings;
         _injector = injector;
@@ -180,6 +198,8 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         _prompts = prompts;
         _speechToText = speechToText;
         _textGeneration = textGeneration;
+        _fileLogger = fileLogger;
+        _logLevel = logLevel;
     }
 
     public IReadOnlyList<string> ThinkingModes { get; } = ["Not set", "Enabled", "Disabled"];
@@ -193,6 +213,12 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
 
     public IReadOnlyList<string> ResponseFormats { get; } = [string.Empty, "text", "json_object"];
 
+    public string HotkeyDisplay => IsCapturingHotkey
+        ? "Press the keys you want to use…"
+        : Hotkey;
+
+    public string LogFilePath => _fileLogger.LogFilePath;
+
     protected override async Task OnInitializeAsync()
     {
         await base.OnInitializeAsync();
@@ -202,22 +228,6 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
 
         _ = ProbePermissionAsync();
         _ = LoadDevicesAsync();
-    }
-
-    partial void OnSelectedSpeechModelChanged(string? value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            SpeechModelId = value;
-        }
-    }
-
-    partial void OnSelectedPostModelChanged(string? value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            PostModelId = value;
-        }
     }
 
     partial void OnSelectedPromptChanged(PromptOption? value)
@@ -285,6 +295,33 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     }
 
     [RelayCommand]
+    private void BeginHotkeyCapture()
+    {
+        IsCapturingHotkey = true;
+        HotkeyCaptureMessage = null;
+    }
+
+    [RelayCommand]
+    public void CancelHotkeyCapture()
+    {
+        IsCapturingHotkey = false;
+        HotkeyCaptureMessage = null;
+    }
+
+    // Called by the view once a key press has been turned into a shortcut string.
+    public void CompleteHotkeyCapture(string combo)
+    {
+        Hotkey = combo;
+        IsCapturingHotkey = false;
+        HotkeyCaptureMessage = null;
+    }
+
+    public void FailHotkeyCapture(string message)
+    {
+        HotkeyCaptureMessage = message;
+    }
+
+    [RelayCommand]
     private async Task LoadDevicesAsync()
     {
         try
@@ -312,7 +349,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
 
         try
         {
-            var models = await _speechToText.ListModelsAsync();
+            var models = await _speechToText.ListModelsAsync(SpeechEndpoint, SpeechApiKey);
             SpeechModels = new ObservableCollection<string>(models.Select(model => model.Id).Order(StringComparer.Ordinal));
             SpeechModelsMessage = $"{SpeechModels.Count} models";
         }
@@ -334,7 +371,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
 
         try
         {
-            var models = await _textGeneration.ListModelsAsync();
+            var models = await _textGeneration.ListModelsAsync(PostEndpoint, PostApiKey);
             PostModels = new ObservableCollection<string>(models.Select(model => model.Id).Order(StringComparer.Ordinal));
             PostModelsMessage = $"{PostModels.Count} models";
         }
@@ -372,21 +409,22 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     }
 
     [RelayCommand]
-    private async Task SavePromptAsync()
+    private async Task DuplicatePromptAsync()
     {
-        if (SelectedPrompt is null || SelectedPrompt.Prompt.IsBuiltIn)
+        if (SelectedPrompt is null)
         {
             return;
         }
 
-        var prompt = SelectedPrompt.Prompt;
-        prompt.Title = PromptTitle;
-        prompt.Instructions = PromptInstructions;
+        var copy = await _prompts.DuplicateAsync(SelectedPrompt.Prompt.Id);
 
-        await _prompts.UpdateAsync(prompt);
+        if (copy is null)
+        {
+            return;
+        }
 
         RefreshPrompts();
-        SaveMessage = "Prompt saved.";
+        SelectedPrompt = PromptOptions.FirstOrDefault(option => option.Prompt.Id == copy.Id);
     }
 
     [RelayCommand]
@@ -411,8 +449,10 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
             : ShortcutTriggerMode.Tap;
         settings.Hotkey = string.IsNullOrWhiteSpace(Hotkey) ? AppSettings.DefaultHotkey : Hotkey.Trim();
         settings.HistoryItemsToKeep = Math.Clamp(HistoryItemsToKeep, 0, 5000);
+        settings.KeepRecordings = KeepRecordings;
         settings.MaximumRecordingSeconds = Math.Clamp(MaximumRecordingSeconds, 1, 3600);
         settings.CheckForUpdates = CheckForUpdates;
+        settings.DebugLogging = DebugLogging;
         settings.InputDeviceId = SelectedDevice?.Device.Id;
         settings.InputDeviceName = SelectedDevice?.Device.Name;
 
@@ -424,14 +464,72 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         settings.PostProcessing.Endpoint = PostEndpoint?.Trim();
         settings.PostProcessing.ApiKey = PostApiKey?.Trim();
         settings.PostProcessing.ModelId = PostModelId?.Trim();
+        settings.PostProcessing.TimeoutSeconds = Math.Clamp(PostTimeoutSeconds, 1, 3600);
         settings.PostProcessing.Options = options;
         settings.PostProcessing.SelectedPromptId = SelectedPrompt?.Prompt.Id == TranscriptionPrompt.BuiltInId
             ? null
             : SelectedPrompt?.Prompt.Id;
 
+        if (SelectedPrompt is { Prompt.IsBuiltIn: false } prompt)
+        {
+            prompt.Prompt.Title = PromptTitle;
+            prompt.Prompt.Instructions = PromptInstructions;
+
+            await _prompts.UpdateAsync(prompt.Prompt);
+
+            // The dropdown shows the cached title, so it needs rebuilding after a rename.
+            RefreshPrompts();
+        }
+
         await _settings.SaveAsync();
 
+        ApplyLogLevel();
+
         SaveMessage = "Saved.";
+    }
+
+    private void ApplyLogLevel()
+    {
+        _logLevel.Set(DebugLogging ? LogLevel.Debug : LogLevel.Information);
+    }
+
+    /// <summary>
+    /// Opens the log file so a report of "it just stopped working" can be checked against what the
+    /// app actually did.
+    /// </summary>
+    [RelayCommand]
+    private void OpenLogFile()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(_fileLogger.LogFilePath) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            SaveError = $"Could not open the log file: {ex.Message}";
+        }
+    }
+
+    // A note that sits there forever cannot show that a later click did anything, so it clears itself.
+    partial void OnSaveMessageChanged(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return;
+        }
+
+        _saveMessageTimer?.Stop();
+
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            SaveMessage = null;
+        };
+
+        _saveMessageTimer = timer;
+        timer.Start();
     }
 
     private void LoadFromSettings()
@@ -442,8 +540,10 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         TriggerModeName = settings.TriggerMode.ToString();
         Hotkey = settings.Hotkey;
         HistoryItemsToKeep = settings.HistoryItemsToKeep;
+        KeepRecordings = settings.KeepRecordings;
         MaximumRecordingSeconds = settings.MaximumRecordingSeconds;
         CheckForUpdates = settings.CheckForUpdates;
+        DebugLogging = settings.DebugLogging;
 
         SpeechEndpoint = settings.SpeechToText.Endpoint;
         SpeechApiKey = settings.SpeechToText.ApiKey;
@@ -453,6 +553,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         PostEndpoint = settings.PostProcessing.Endpoint;
         PostApiKey = settings.PostProcessing.ApiKey;
         PostModelId = settings.PostProcessing.ModelId;
+        PostTimeoutSeconds = settings.PostProcessing.TimeoutSeconds;
 
         var options = settings.PostProcessing.Options;
 
@@ -584,7 +685,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     {
         public override string ToString()
         {
-            return Prompt.Title;
+            return Prompt.IsBuiltIn ? $"{Prompt.Title} (built-in)" : Prompt.Title;
         }
     }
 }

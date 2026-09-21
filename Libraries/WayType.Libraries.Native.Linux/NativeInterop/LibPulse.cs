@@ -34,6 +34,18 @@ internal static class LibPulse
         return pointer == IntPtr.Zero ? "(no message)" : Marshal.PtrToStringUTF8(pointer) ?? "(no message)";
     }
 
+    // Converts a duration into the byte count it occupies for the given sample spec, which is how a
+    // measured stream latency turns into the number of buffered bytes still waiting to be read.
+    [DllImport(Library, EntryPoint = "pa_usec_to_bytes", CallingConvention = CallingConvention.Cdecl)]
+    private static extern nuint pa_usec_to_bytes(ulong microseconds, ref PaSampleSpec spec);
+
+    public static int UsecToBytes(ulong microseconds, ref PaSampleSpec spec)
+    {
+        var bytes = pa_usec_to_bytes(microseconds, ref spec);
+
+        return bytes > int.MaxValue ? int.MaxValue : (int)bytes;
+    }
+
     [DllImport(Library, EntryPoint = "pa_mainloop_new", CallingConvention = CallingConvention.Cdecl)]
     public static extern IntPtr pa_mainloop_new();
 

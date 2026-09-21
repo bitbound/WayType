@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="WayType.Views.StatusOverlayWindow"
+        Title="WayType status"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual">
+
+  <Border Background="{DynamicResource OverlayBackgroundBrush}"
+          BorderBrush="{DynamicResource OverlayBorderBrush}"
+          BorderThickness="1"
+          CornerRadius="18"
+          Padding="16,9">
+    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+
+      <PathIcon x:Name="MicIcon"
+                Data="{DynamicResource mic_on_regular}"
+                Width="16"
+                Height="16"
+                Foreground="{DynamicResource SuccessColor}"
+                VerticalAlignment="Center" />
+
+      <TextBlock x:Name="StatusText"
+                 VerticalAlignment="Center"
+                 FontSize="13"
+                 Foreground="{DynamicResource TextPrimaryBrush}" />
+
+    </StackPanel>
+  </Border>
+
+</Window>

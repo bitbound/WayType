@@ -5,6 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Hotkey capture in the app can only be trusted to produce shortcuts this library accepts by testing both halves. -->
+    <InternalsVisibleTo Include="WayType.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Tmds.DBus" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>

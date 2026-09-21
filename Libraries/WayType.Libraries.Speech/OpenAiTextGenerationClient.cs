@@ -28,16 +28,14 @@ public sealed class OpenAiTextGenerationClient(HttpClient httpClient, ISettingsS
         request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
         AiEndpointRequests.ApplyAuthorization(request, post.ApiKey);
 
-        var body = await AiEndpointRequests.SendAsync(httpClient, request, logger, cancellationToken).ConfigureAwait(false);
+        var body = await AiEndpointRequests.SendAsync(httpClient, request, logger, post.Timeout, cancellationToken).ConfigureAwait(false);
 
         return ReadCompletion(body);
     }
 
-    public Task<IReadOnlyList<AiModel>> ListModelsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AiModel>> ListModelsAsync(string? endpoint, string? apiKey, CancellationToken cancellationToken = default)
     {
-        var post = settings.Current.PostProcessing;
-
-        return AiEndpointRequests.ListModelsAsync(httpClient, post.Endpoint, post.ApiKey, logger, cancellationToken);
+        return AiEndpointRequests.ListModelsAsync(httpClient, endpoint, apiKey, logger, cancellationToken);
     }
 
     // The ThinkingEnabled boolean is the vLLM/Qwen chat-template switch (chat_template_kwargs.enable_thinking),

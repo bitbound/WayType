@@ -95,6 +95,27 @@ public class PcmProcessorTests
         Assert.Equal(44, PcmProcessor.ToWav(PcmAudio.Empty).Length);
     }
 
+    [Fact]
+    public void ToFloat32_UndoesToSigned16Bit()
+    {
+        var samples = new[] { 0.5f, -0.5f, 1f, -1f, 0f };
+
+        var roundTripped = PcmProcessor.ToFloat32(PcmProcessor.ToSigned16Bit(samples));
+
+        Assert.Equal(samples.Length, roundTripped.Length);
+
+        for (var index = 0; index < samples.Length; index++)
+        {
+            Assert.Equal(samples[index], roundTripped[index], 0.0001f);
+        }
+    }
+
+    [Fact]
+    public void ToFloat32_WithAnOddByteCount_IgnoresTheTrailingByte()
+    {
+        Assert.Equal([0f], PcmProcessor.ToFloat32([0x00, 0x00, 0x7F]));
+    }
+
     private static int ReadInt16(byte[] bytes, int offset)
     {
         return BitConverter.ToInt16(bytes, offset);

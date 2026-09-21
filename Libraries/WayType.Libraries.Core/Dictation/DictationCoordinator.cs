@@ -18,6 +18,7 @@ public sealed class DictationCoordinator : IDictationCoordinator
     private readonly TimeProvider _timeProvider;
     private readonly Lock _gate = new();
     private readonly IAudioRecorder _recorder;
+    private readonly IRecordingStore _recordings;
     private readonly ISettingsService _settings;
     private readonly IPromptService _prompts;
     private readonly IHistoryService _history;
@@ -29,6 +30,7 @@ public sealed class DictationCoordinator : IDictationCoordinator
 
     public DictationCoordinator(
         IAudioRecorder recorder,
+        IRecordingStore recordings,
         ISpeechToTextClient speechToText,
         ITextGenerationClient textGeneration,
         IPromptService prompts,
@@ -39,6 +41,7 @@ public sealed class DictationCoordinator : IDictationCoordinator
         ILogger<DictationCoordinator> logger)
     {
         _recorder = recorder;
+        _recordings = recordings;
         _speechToText = speechToText;
         _textGeneration = textGeneration;
         _prompts = prompts;
@@ -65,17 +68,24 @@ public sealed class DictationCoordinator : IDictationCoordinator
             return;
         }
 
-        if (State == DictationState.Idle)
+        if (CanStart(State))
         {
             await StartAsync(cancellationToken);
         }
+    }
+
+    // Error has to be restartable or a single failed take silences the hotkey until the app is restarted:
+    // nothing else ever moves the state back off Error.
+    private static bool CanStart(DictationState state)
+    {
+        return state is DictationState.Idle or DictationState.Error;
     }
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
         lock (_gate)
         {
-            if (State != DictationState.Idle)
+            if (!CanStart(State))
             {
                 return Task.CompletedTask;
             }
@@ -86,6 +96,7 @@ public sealed class DictationCoordinator : IDictationCoordinator
                 return Task.CompletedTask;
             }
 
+            LastError = null;
             _endOfRecording = new CancellationTokenSource();
             SetState(DictationState.Listening);
 
@@ -132,7 +143,7 @@ public sealed class DictationCoordinator : IDictationCoordinator
                 endOfRecording.CancelAfter(maxDuration);
 
                 pcm = await _recorder
-                    .RecordAsync(_settings.Current.InputDeviceId, endOfRecording.Token, cancellationToken)
+                    .RecordAsync(_settings.Current.InputDeviceId, endOfRecording.Token, maxDuration, cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -175,17 +186,31 @@ public sealed class DictationCoordinator : IDictationCoordinator
             }
 
             var durationMs = (long)_timeProvider.GetElapsedTime(started, _timeProvider.GetTimestamp()).TotalMilliseconds;
+            var entryId = Guid.NewGuid();
+            var audioFileName = await SaveRecordingAsync(entryId, wav, cancellationToken).ConfigureAwait(false);
 
-            await _history.AddAsync(
-                new HistoryEntry
-                {
-                    Text = finalText,
-                    Transcription = promptTitle is null ? null : transcription,
-                    ModelId = _settings.Current.SpeechToText.ModelId,
-                    PromptTitle = promptTitle,
-                    DurationMs = durationMs,
-                },
-                cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await _history.AddAsync(
+                    new HistoryEntry
+                    {
+                        Id = entryId,
+                        Text = finalText,
+                        Transcription = promptTitle is null ? null : transcription,
+                        ModelId = _settings.Current.SpeechToText.ModelId,
+                        PromptTitle = promptTitle,
+                        AudioFileName = audioFileName,
+                        DurationMs = durationMs,
+                    },
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The audio is only reachable through the row, so it goes back out with the row.
+                _recordings.Delete(audioFileName);
+
+                throw;
+            }
 
             SetState(DictationState.Injecting);
 
@@ -214,6 +239,27 @@ public sealed class DictationCoordinator : IDictationCoordinator
             }
 
             Fail(ex.Message);
+        }
+    }
+
+    // The WAV is already rendered for the endpoint, so keeping it costs a copy rather than another
+    // capture. A failure to write it is not worth losing a dictation that transcribed fine.
+    private async Task<string?> SaveRecordingAsync(Guid entryId, byte[] wav, CancellationToken cancellationToken)
+    {
+        if (!_settings.Current.KeepRecordings)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _recordings.SaveAsync(entryId, wav, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Could not save the recording for history.");
+
+            return null;
         }
     }
 

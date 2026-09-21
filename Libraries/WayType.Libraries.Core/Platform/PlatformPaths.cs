@@ -16,6 +16,8 @@ public sealed class PlatformPaths : IPlatformPaths
 
     public string HistoryFilePath => Path.Combine(DataDirectory, "history.json");
 
+    public string AudioDirectory => Path.Combine(DataDirectory, "audio");
+
     public string RemoteDesktopRestoreTokenPath => Path.Combine(ConfigDirectory, "remotedesktop-restore-token");
 
     public string HotkeyRestoreTokenPath => Path.Combine(ConfigDirectory, "hotkey-registration.json");
@@ -42,6 +44,7 @@ public sealed class PlatformPaths : IPlatformPaths
     {
         Directory.CreateDirectory(ConfigDirectory);
         Directory.CreateDirectory(DataDirectory);
+        Directory.CreateDirectory(AudioDirectory);
     }
 
     private static string HomeDirectory(IEnvironmentVariables env)

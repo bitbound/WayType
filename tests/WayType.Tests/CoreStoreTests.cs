@@ -65,8 +65,9 @@ public class HistoryServiceTests
     [Fact]
     public async Task AddAsync_TrimmsToConfiguredHistoryItemsToKeepKeepingNewest()
     {
-        var settings = TestSettings.Create(new InMemoryFileStore(), new AppSettings { HistoryItemsToKeep = 2 });
-        var history = new HistoryService(new TestPlatformPaths(), new InMemoryFileStore(), settings);
+        var fileStore = new InMemoryFileStore();
+        var settings = TestSettings.Create(fileStore, new AppSettings { HistoryItemsToKeep = 2 });
+        var history = CreateHistory(fileStore, settings);
         var ct = TestContext.Current.CancellationToken;
 
         for (var index = 0; index < 5; index++)
@@ -86,10 +87,31 @@ public class HistoryServiceTests
     }
 
     [Fact]
+    public async Task AddAsync_WhenTrimming_DropsTheRecordingsOfTheRemovedEntries()
+    {
+        var fileStore = new InMemoryFileStore();
+        var recordings = new RecordingStore(new TestPlatformPaths(), fileStore);
+        var settings = TestSettings.Create(fileStore, new AppSettings { HistoryItemsToKeep = 1 });
+        var history = new HistoryService(new TestPlatformPaths(), fileStore, recordings, settings);
+        var ct = TestContext.Current.CancellationToken;
+        var oldest = new HistoryEntry { Text = "oldest", TimestampUtc = DateTimeOffset.UnixEpoch };
+        var newest = new HistoryEntry { Text = "newest", TimestampUtc = DateTimeOffset.UnixEpoch.AddMinutes(1) };
+
+        oldest.AudioFileName = await recordings.SaveAsync(oldest.Id, [1, 2, 3], ct);
+        newest.AudioFileName = await recordings.SaveAsync(newest.Id, [4, 5, 6], ct);
+
+        await history.AddAsync(oldest, ct);
+        await history.AddAsync(newest, ct);
+
+        Assert.False(recordings.Exists(oldest.AudioFileName));
+        Assert.True(recordings.Exists(newest.AudioFileName));
+    }
+
+    [Fact]
     public async Task DeleteAsync_RemovesOnlyTheSelectedEntry()
     {
         var fileStore = new InMemoryFileStore();
-        var history = new HistoryService(new TestPlatformPaths(), fileStore, TestSettings.Create(fileStore));
+        var history = CreateHistory(fileStore, TestSettings.Create(fileStore));
         var keep = new HistoryEntry { Text = "keep" };
         var drop = new HistoryEntry { Text = "drop" };
         var ct = TestContext.Current.CancellationToken;
@@ -104,10 +126,26 @@ public class HistoryServiceTests
     }
 
     [Fact]
+    public async Task DeleteAsync_DropsTheRecordingOfTheRemovedEntry()
+    {
+        var fileStore = new InMemoryFileStore();
+        var recordings = new RecordingStore(new TestPlatformPaths(), fileStore);
+        var history = new HistoryService(new TestPlatformPaths(), fileStore, recordings, TestSettings.Create(fileStore));
+        var ct = TestContext.Current.CancellationToken;
+        var entry = new HistoryEntry { Text = "keep" };
+
+        entry.AudioFileName = await recordings.SaveAsync(entry.Id, [1, 2, 3], ct);
+        await history.AddAsync(entry, ct);
+        await history.DeleteAsync(entry.Id, ct);
+
+        Assert.False(recordings.Exists(entry.AudioFileName));
+    }
+
+    [Fact]
     public async Task DeleteAsync_WithAnUnknownId_ReturnsFalse()
     {
         var fileStore = new InMemoryFileStore();
-        var history = new HistoryService(new TestPlatformPaths(), fileStore, TestSettings.Create(fileStore));
+        var history = CreateHistory(fileStore, TestSettings.Create(fileStore));
         var ct = TestContext.Current.CancellationToken;
 
         await history.AddAsync(new HistoryEntry { Text = "one" }, ct);
@@ -121,7 +159,7 @@ public class HistoryServiceTests
     {
         var fileStore = new InMemoryFileStore();
         var paths = new TestPlatformPaths();
-        var history = new HistoryService(paths, fileStore, TestSettings.Create(fileStore));
+        var history = CreateHistory(fileStore, TestSettings.Create(fileStore));
         var ct = TestContext.Current.CancellationToken;
 
         await history.AddAsync(new HistoryEntry { Text = "one" }, ct);
@@ -129,9 +167,30 @@ public class HistoryServiceTests
 
         Assert.Empty(history.GetAll());
 
-        var reloaded = new HistoryService(paths, fileStore, TestSettings.Create(fileStore));
+        var reloaded = new HistoryService(paths, fileStore, new RecordingStore(paths, fileStore), TestSettings.Create(fileStore));
 
         Assert.Empty(reloaded.GetAll());
+    }
+
+    [Fact]
+    public async Task ClearAsync_DropsEveryRecording()
+    {
+        var fileStore = new InMemoryFileStore();
+        var recordings = new RecordingStore(new TestPlatformPaths(), fileStore);
+        var history = new HistoryService(new TestPlatformPaths(), fileStore, recordings, TestSettings.Create(fileStore));
+        var ct = TestContext.Current.CancellationToken;
+        var entry = new HistoryEntry { Text = "one" };
+
+        entry.AudioFileName = await recordings.SaveAsync(entry.Id, [1, 2, 3], ct);
+        await history.AddAsync(entry, ct);
+        await history.ClearAsync(ct);
+
+        Assert.False(recordings.Exists(entry.AudioFileName));
+    }
+
+    private static HistoryService CreateHistory(InMemoryFileStore fileStore, SettingsService settings)
+    {
+        return new HistoryService(new TestPlatformPaths(), fileStore, new RecordingStore(new TestPlatformPaths(), fileStore), settings);
     }
 }
 
@@ -197,6 +256,79 @@ public class PromptServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => prompts.UpdateAsync(TranscriptionPrompt.CreateBuiltIn(), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task DuplicateAsync_CopiesThePromptUnderACopyTitle()
+    {
+        var fileStore = new InMemoryFileStore();
+        var prompts = new PromptService(new TestPlatformPaths(), fileStore, TestSettings.Create(fileStore));
+        var ct = TestContext.Current.CancellationToken;
+
+        var original = await prompts.CreateAsync("Notes", ct);
+        original.Instructions = "Tidy this: ${sst_output}";
+        await prompts.UpdateAsync(original, ct);
+
+        var copy = await prompts.DuplicateAsync(original.Id, ct);
+
+        Assert.NotNull(copy);
+        Assert.NotEqual(original.Id, copy.Id);
+        Assert.Equal("Notes - Copy", copy.Title);
+        Assert.Equal("Tidy this: ${sst_output}", copy.Instructions);
+        Assert.False(copy.IsBuiltIn);
+    }
+
+    [Fact]
+    public async Task DuplicateAsync_PersistsTheCopy()
+    {
+        var fileStore = new InMemoryFileStore();
+        var prompts = new PromptService(new TestPlatformPaths(), fileStore, TestSettings.Create(fileStore));
+        var ct = TestContext.Current.CancellationToken;
+
+        var original = await prompts.CreateAsync("Notes", ct);
+        await prompts.DuplicateAsync(original.Id, ct);
+
+        var reloaded = new PromptService(new TestPlatformPaths(), fileStore, TestSettings.Create(fileStore));
+
+        Assert.Contains(reloaded.GetAll(), prompt => prompt.Title == "Notes - Copy");
+    }
+
+    [Fact]
+    public async Task DuplicateAsync_OfTheBuiltInPrompt_MakesAnEditableCopy()
+    {
+        var fileStore = new InMemoryFileStore();
+        var prompts = new PromptService(new TestPlatformPaths(), fileStore, TestSettings.Create(fileStore));
+
+        var copy = await prompts.DuplicateAsync(TranscriptionPrompt.BuiltInId, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(copy);
+        Assert.False(copy.IsBuiltIn);
+        Assert.Equal($"{prompts.BuiltIn.Title} - Copy", copy.Title);
+        Assert.Contains(PromptRenderer.OutputPlaceholder, copy.Instructions);
+    }
+
+    [Fact]
+    public async Task DuplicateAsync_LeavesTheOriginalUnchanged()
+    {
+        var fileStore = new InMemoryFileStore();
+        var prompts = new PromptService(new TestPlatformPaths(), fileStore, TestSettings.Create(fileStore));
+        var ct = TestContext.Current.CancellationToken;
+
+        var original = await prompts.CreateAsync("Notes", ct);
+        await prompts.DuplicateAsync(original.Id, ct);
+
+        var stored = prompts.Get(original.Id);
+
+        Assert.NotNull(stored);
+        Assert.Equal("Notes", stored.Title);
+    }
+
+    [Fact]
+    public async Task DuplicateAsync_WithAnUnknownId_ReturnsNull()
+    {
+        var prompts = new PromptService(new TestPlatformPaths(), new InMemoryFileStore(), TestSettings.Create(new InMemoryFileStore()));
+
+        Assert.Null(await prompts.DuplicateAsync(Guid.NewGuid(), TestContext.Current.CancellationToken));
     }
 }
 

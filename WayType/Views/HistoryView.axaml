@@ -7,7 +7,7 @@
              x:Class="WayType.Views.HistoryView"
              x:DataType="vm:HistoryViewModel">
 
-  <Grid RowDefinitions="Auto,Auto,*" MaxWidth="820" HorizontalAlignment="Left">
+  <Grid RowDefinitions="Auto,Auto,*" MaxWidth="820" HorizontalAlignment="Left" Margin="20">
 
     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
       <TextBlock Classes="h1" Text="History" VerticalAlignment="Center" />
@@ -27,23 +27,51 @@
                Margin="0,12,0,0"
                IsVisible="{Binding !HasEntries}" />
 
+    <TextBlock Grid.Row="1"
+               Text="{Binding PlaybackError}"
+               Classes="Error"
+               Margin="0,12,0,0"
+               TextWrapping="Wrap"
+               IsVisible="{Binding PlaybackError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
     <ListBox Grid.Row="2"
              Margin="0,12,0,0"
              ItemsSource="{Binding Entries}"
              SelectedItem="{Binding SelectedEntry}">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="vm:HistoryItemViewModel">
-          <StackPanel Spacing="4" Margin="0,6">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <TextBlock Text="{Binding Timestamp}" Classes="caption" />
-              <TextBlock Text="{Binding Details}" Classes="caption" />
+          <Grid ColumnDefinitions="*,Auto" Margin="0,6">
+            <StackPanel Spacing="4">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="{Binding Timestamp}" Classes="caption" />
+                <TextBlock Text="{Binding Details}" Classes="caption" />
+              </StackPanel>
+              <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding Transcription}"
+                         Classes="caption"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding Transcription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </StackPanel>
-            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding Transcription}"
-                       Classes="caption"
-                       TextWrapping="Wrap"
-                       IsVisible="{Binding Transcription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-          </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+              <Button Classes="Default VariantText Small"
+                      Command="{Binding $parent[ListBox].((vm:HistoryViewModel)DataContext).PlayCommand}"
+                      CommandParameter="{Binding}"
+                      IsVisible="{Binding HasAudio}"
+                      ToolTip.Tip="Play the recording">
+                <Panel>
+                  <PathIcon Data="{StaticResource play_regular}" IsVisible="{Binding !IsPlaying}" />
+                  <PathIcon Data="{StaticResource stop_regular}" IsVisible="{Binding IsPlaying}" />
+                </Panel>
+              </Button>
+
+              <Button Classes="Default VariantText Small"
+                      ToolTip.Tip="Copy"
+                      Click="OnCopyClicked">
+                <PathIcon Data="{StaticResource copy_regular}" />
+              </Button>
+            </StackPanel>
+          </Grid>
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>

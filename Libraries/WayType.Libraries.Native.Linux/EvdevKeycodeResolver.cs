@@ -7,10 +7,11 @@ namespace WayType.Libraries.Native.Linux;
 /// </summary>
 public sealed class EvdevKeycodeResolver : IKeycodeResolver
 {
-    // The three control characters below use the key codes the keyboard-injection path expects.
-    private const int Enter = 36;
-    private const int Tab = 15;
-    private const int Space = 82;
+    // Linux evdev input event codes, matching KEY_* in linux/input-event-codes.h. The portal's
+    // NotifyKeyboardKeycode takes these codes directly.
+    private const int EnterKeycode = 28;
+    private const int TabKeycode = 15;
+    private const int SpaceKeycode = 57;
 
     private static readonly Dictionary<char, (int Keycode, bool NeedsShift)> Map = BuildMap();
 
@@ -35,9 +36,9 @@ public sealed class EvdevKeycodeResolver : IKeycodeResolver
     {
         var map = new Dictionary<char, (int, bool)>
         {
-            ['\n'] = (Enter, false),
-            ['\t'] = (Tab, false),
-            [' '] = (Space, false),
+            ['\n'] = (EnterKeycode, false),
+            ['\t'] = (TabKeycode, false),
+            [' '] = (SpaceKeycode, false),
         };
 
         // US-layout evdev codes, ordered left-to-right, top-to-bottom across the letter rows.

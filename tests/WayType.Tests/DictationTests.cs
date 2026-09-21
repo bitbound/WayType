@@ -12,6 +12,7 @@ public class DictationCoordinatorTests
 {
     private readonly InMemoryFileStore _fileStore = new();
     private readonly GatedAudioRecorder _recorder = new();
+    private readonly RecordingStore _recordings;
     private readonly FakeSpeechToTextClient _speechToText = new();
     private readonly FakeTextGenerationClient _textGeneration = new();
     private readonly FakeTextInputInjector _injector = new();
@@ -22,7 +23,8 @@ public class DictationCoordinatorTests
     public DictationCoordinatorTests()
     {
         _settings = TestSettings.Create(_fileStore, TestSettings.ConfiguredSst());
-        _history = new HistoryService(new TestPlatformPaths(), _fileStore, _settings);
+        _recordings = new RecordingStore(new TestPlatformPaths(), _fileStore);
+        _history = new HistoryService(new TestPlatformPaths(), _fileStore, _recordings, _settings);
         _coordinator = Create(settings: _settings);
     }
 
@@ -125,12 +127,108 @@ public class DictationCoordinatorTests
         Assert.Equal("alsa_input.usb-mic", _recorder.LastDeviceId);
     }
 
+    [Fact]
+    public async Task ToggleAsync_AfterAFailedRun_StartsANewCapture()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        _speechToText.Throw = new AiEndpointException("The endpoint rejected the audio.", statusCode: 404);
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        Assert.Equal(DictationState.Error, _coordinator.State);
+
+        _speechToText.Throw = null;
+
+        await _coordinator.ToggleAsync(ct);
+
+        Assert.True(_coordinator.IsListening);
+
+        await _coordinator.StopAsync(ct);
+
+        Assert.Equal(2, _recorder.CallCount);
+        Assert.Equal(["hello there"], _injector.Typed);
+    }
+
+    [Fact]
+    public async Task StartAsync_AfterAFailedRun_ListensAgainAndDropsTheStaleError()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        _speechToText.Throw = new AiEndpointException("The endpoint rejected the audio.", statusCode: 404);
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        Assert.Equal(DictationState.Error, _coordinator.State);
+        Assert.NotNull(_coordinator.LastError);
+
+        _speechToText.Throw = null;
+
+        await _coordinator.StartAsync(ct);
+
+        Assert.True(_coordinator.IsListening);
+        Assert.Null(_coordinator.LastError);
+    }
+
+    [Fact]
+    public async Task StopAsync_WithRecordingsEnabled_KeepsTheAudioOnDisk()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        var entry = Assert.Single(_history.GetAll());
+
+        Assert.NotNull(entry.AudioFileName);
+        Assert.True(_recordings.Exists(entry.AudioFileName));
+        Assert.Equal(_speechToText.Received[0], _recordings.Read(entry.AudioFileName));
+    }
+
+    [Fact]
+    public async Task StopAsync_WithRecordingsDisabled_KeepsNoAudio()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        _settings.Current.KeepRecordings = false;
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        var entry = Assert.Single(_history.GetAll());
+
+        Assert.Null(entry.AudioFileName);
+        AssertNoAudioFiles();
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenTheTranscriptionIsEmpty_LeavesNoRecordingBehind()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        _speechToText.Text = "   ";
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        Assert.Empty(_history.GetAll());
+        AssertNoAudioFiles();
+    }
+
+    private void AssertNoAudioFiles()
+    {
+        Assert.DoesNotContain(_fileStore.Paths, path => path.StartsWith(new TestPlatformPaths().AudioDirectory, StringComparison.Ordinal));
+    }
+
     private DictationCoordinator Create(SettingsService settings)
     {
         var prompts = new PromptService(new TestPlatformPaths(), _fileStore, settings);
 
         return new DictationCoordinator(
             _recorder,
+            _recordings,
             _speechToText,
             _textGeneration,
             prompts,

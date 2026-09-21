@@ -12,6 +12,8 @@ public interface IPlatformPaths
 
     string HistoryFilePath { get; }
 
+    string AudioDirectory { get; }
+
     string RemoteDesktopRestoreTokenPath { get; }
 
     string HotkeyRestoreTokenPath { get; }

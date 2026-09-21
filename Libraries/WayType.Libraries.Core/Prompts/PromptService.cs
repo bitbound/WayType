@@ -20,6 +20,11 @@ public interface IPromptService
 
     Task<TranscriptionPrompt> CreateAsync(string title, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Copies an existing prompt under a "- Copy" title. Returns null when the source is unknown.
+    /// </summary>
+    Task<TranscriptionPrompt?> DuplicateAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task UpdateAsync(TranscriptionPrompt prompt, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
@@ -28,6 +33,7 @@ public interface IPromptService
 public sealed class PromptService : IPromptService
 {
     private const string NewPromptTitle = "New prompt";
+    private const string CopySuffix = " - Copy";
 
     private readonly IFileStore _fileStore;
     private readonly IPlatformPaths _paths;
@@ -78,6 +84,29 @@ public sealed class PromptService : IPromptService
         await WriteAsync(prompts, cancellationToken);
 
         return prompt;
+    }
+
+    public async Task<TranscriptionPrompt?> DuplicateAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        // The built-in prompt is never stored, but it is the one most people start from, so copying
+        // it has to work too.
+        if (Get(id) is not { } source)
+        {
+            return null;
+        }
+
+        var copy = new TranscriptionPrompt
+        {
+            Title = $"{source.Title}{CopySuffix}",
+            Instructions = source.Instructions,
+        };
+
+        var prompts = ReadUserPrompts();
+        prompts.Add(copy);
+
+        await WriteAsync(prompts, cancellationToken);
+
+        return copy;
     }
 
     public async Task UpdateAsync(TranscriptionPrompt prompt, CancellationToken cancellationToken = default)

@@ -8,6 +8,8 @@ public sealed class AssemblyAppInfo : IAppInfo
 
     public string ProductName => "WayType";
 
+    public string AppId => "io.github.bitbound.waytype";
+
     public Version Version => GetType().Assembly.GetName().Version ?? new Version(0, 0, 0, 0);
 
     public string RepositoryUrl => RepoUrl;

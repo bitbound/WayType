@@ -11,30 +11,31 @@ namespace WayType.Tests;
 
 public sealed class InMemoryFileStore : IFileStore
 {
-    private readonly Dictionary<string, string> _files = new(StringComparer.Ordinal);
+    // Bytes rather than text, so recordings written through WriteBytesAsync read back intact.
+    private readonly Dictionary<string, byte[]> _files = new(StringComparer.Ordinal);
 
-    public IReadOnlyDictionary<string, string> Files => _files;
+    public IReadOnlyList<string> Paths => [.. _files.Keys];
 
     public List<string> RestrictedPaths { get; } = [];
 
     public bool FileExists(string path) => _files.ContainsKey(path);
 
-    public string ReadAllText(string path) => _files[path];
+    public string ReadAllText(string path) => System.Text.Encoding.UTF8.GetString(_files[path]);
 
-    public string? ReadAllTextOrNull(string path) => _files.TryGetValue(path, out var contents) ? contents : null;
+    public string? ReadAllTextOrNull(string path) => _files.TryGetValue(path, out var contents) ? ReadAllText(path) : null;
 
-    public byte[] ReadAllBytes(string path) => System.Text.Encoding.UTF8.GetBytes(_files[path]);
+    public byte[] ReadAllBytes(string path) => _files[path];
 
     public Task WriteAllTextAsync(string path, string contents, CancellationToken cancellationToken = default)
     {
-        _files[path] = contents;
+        _files[path] = System.Text.Encoding.UTF8.GetBytes(contents);
 
         return Task.CompletedTask;
     }
 
     public Task WriteBytesAsync(string path, byte[] contents, CancellationToken cancellationToken = default)
     {
-        _files[path] = System.Text.Encoding.UTF8.GetString(contents);
+        _files[path] = contents;
 
         return Task.CompletedTask;
     }
@@ -67,6 +68,8 @@ public sealed class TestPlatformPaths : IPlatformPaths
     public string PromptsFilePath => "/config/waytype/prompts.json";
 
     public string HistoryFilePath => "/data/waytype/history.json";
+
+    public string AudioDirectory => "/data/waytype/audio";
 
     public string RemoteDesktopRestoreTokenPath => "/config/waytype/remotedesktop-restore-token";
 
@@ -109,7 +112,7 @@ public sealed class FakeAudioRecorder : IAudioRecorder
 
     public string? LastDeviceId { get; private set; }
 
-    public Task<PcmAudio> RecordAsync(string? deviceId, CancellationToken endOfRecording, CancellationToken cancellationToken = default)
+    public Task<PcmAudio> RecordAsync(string? deviceId, CancellationToken endOfRecording, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastDeviceId = deviceId;
@@ -118,11 +121,26 @@ public sealed class FakeAudioRecorder : IAudioRecorder
     }
 }
 
-public sealed class FakeSpeechToTextClient : ISpeechToTextClient
+public sealed class FakeAudioPlayer : IAudioPlayer
 {
-    public string Text { get; set; } = "hello there";
+    public List<byte[]> Played { get; } = [];
+
+    public TaskCompletionSource? Gate { get; set; }
+
+    public Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken = default)
+    {
+        Played.Add(wavBytes);
+
+        return Gate is null ? Task.CompletedTask : Gate.Task.WaitAsync(cancellationToken);
+    }
+}
+
+public sealed class FakeSpeechToTextClient : ISpeechToTextClient
+{    public string Text { get; set; } = "hello there";
 
     public List<byte[]> Received { get; } = [];
+
+    public List<string?> ListEndpoints { get; } = [];
 
     public Exception? Throw { get; set; }
 
@@ -138,8 +156,10 @@ public sealed class FakeSpeechToTextClient : ISpeechToTextClient
         return Task.FromResult(Text);
     }
 
-    public Task<IReadOnlyList<AiModel>> ListModelsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AiModel>> ListModelsAsync(string? endpoint, string? apiKey, CancellationToken cancellationToken = default)
     {
+        ListEndpoints.Add(endpoint);
+
         return Task.FromResult<IReadOnlyList<AiModel>>([new AiModel("whisper-1")]);
     }
 }
@@ -150,6 +170,8 @@ public sealed class FakeTextGenerationClient : ITextGenerationClient
 
     public List<string> Prompts { get; } = [];
 
+    public List<string?> ListEndpoints { get; } = [];
+
     public Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default)
     {
         Prompts.Add(prompt);
@@ -157,8 +179,10 @@ public sealed class FakeTextGenerationClient : ITextGenerationClient
         return Task.FromResult(Text);
     }
 
-    public Task<IReadOnlyList<AiModel>> ListModelsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AiModel>> ListModelsAsync(string? endpoint, string? apiKey, CancellationToken cancellationToken = default)
     {
+        ListEndpoints.Add(endpoint);
+
         return Task.FromResult<IReadOnlyList<AiModel>>([new AiModel("gpt-4o-mini")]);
     }
 }
@@ -210,7 +234,7 @@ public sealed class GatedAudioRecorder : IAudioRecorder
 
     public string? LastDeviceId { get; private set; }
 
-    public async Task<PcmAudio> RecordAsync(string? deviceId, CancellationToken endOfRecording, CancellationToken cancellationToken = default)
+    public async Task<PcmAudio> RecordAsync(string? deviceId, CancellationToken endOfRecording, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastDeviceId = deviceId;
@@ -235,6 +259,12 @@ public sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponse
 
     public List<string> RequestBodies { get; } = [];
 
+    /// <summary>
+    /// Holds the response back so request timeouts can be exercised. The delay honours the token the
+    /// client passes down, so a request timeout surfaces as cancellation rather than a hung test.
+    /// </summary>
+    public TimeSpan Delay { get; set; }
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         RequestUris.Add(request.RequestUri?.ToString() ?? string.Empty);
@@ -243,6 +273,11 @@ public sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponse
         if (request.Content is not null)
         {
             RequestBodies.Add(await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+        }
+
+        if (Delay > TimeSpan.Zero)
+        {
+            await Task.Delay(Delay, cancellationToken).ConfigureAwait(false);
         }
 
         return responder(request);
@@ -260,6 +295,8 @@ public sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponse
 public sealed class FakeAppInfo(Version? version = null) : IAppInfo
 {
     public string ProductName => "WayType";
+
+    public string AppId => "io.github.testorg.waytype";
 
     public Version Version { get; } = version ?? new Version(1, 0, 0);
 

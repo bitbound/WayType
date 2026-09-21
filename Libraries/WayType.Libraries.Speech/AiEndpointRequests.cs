@@ -12,6 +12,12 @@ internal static class AiEndpointRequests
 {
     private const int MaxDetailLength = 2000;
 
+    /// <summary>
+    /// Model listing is a small request against the same host that serves inference, so it gets a
+    /// shorter budget than generating text.
+    /// </summary>
+    private static readonly TimeSpan ModelListTimeout = TimeSpan.FromSeconds(30);
+
     public static void ApplyAuthorization(HttpRequestMessage request, string? apiKey)
     {
         if (!string.IsNullOrWhiteSpace(apiKey))
@@ -24,15 +30,22 @@ internal static class AiEndpointRequests
     /// Sends the request and returns the response body. Any non-2xx status, timeout, or connection
     /// failure is surfaced as <see cref="AiEndpointException"/>. Caller cancellation propagates.
     /// </summary>
-    public static async Task<string> SendAsync(HttpClient httpClient, HttpRequestMessage request, ILogger logger, CancellationToken cancellationToken)
+    /// <param name="timeout">
+    /// Per-request budget. The clients are configured with no default timeout so this value is the
+    /// only limit, which lets a slow reasoning model be given as long as the caller asks for.
+    /// </param>
+    public static async Task<string> SendAsync(HttpClient httpClient, HttpRequestMessage request, ILogger logger, TimeSpan timeout, CancellationToken cancellationToken)
     {
         string body;
 
+        using var timeoutSource = new CancellationTokenSource(timeout);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
+
         try
         {
-            using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            using var response = await httpClient.SendAsync(request, linked.Token).ConfigureAwait(false);
 
-            body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            body = await response.Content.ReadAsStringAsync(linked.Token).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -46,7 +59,13 @@ internal static class AiEndpointRequests
         {
             throw;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TimeoutException or OperationCanceledException)
+        catch (OperationCanceledException)
+        {
+            logger.LogError("The AI endpoint at {Url} did not answer within {Seconds}s.", request.RequestUri, timeout.TotalSeconds);
+            throw new AiEndpointException(
+                $"The AI endpoint at {request.RequestUri} did not answer within {timeout.TotalSeconds:0.##}s.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TimeoutException)
         {
             logger.LogError(ex, "Failed to reach the AI endpoint at {Url}.", request.RequestUri);
             throw new AiEndpointException($"Could not reach the AI endpoint at {request.RequestUri}.", detail: ex.Message);
@@ -60,7 +79,7 @@ internal static class AiEndpointRequests
         using var request = new HttpRequestMessage(HttpMethod.Get, AiEndpoint.BuildUri(endpoint, "/models"));
         ApplyAuthorization(request, apiKey);
 
-        var body = await SendAsync(httpClient, request, logger, cancellationToken).ConfigureAwait(false);
+        var body = await SendAsync(httpClient, request, logger, ModelListTimeout, cancellationToken).ConfigureAwait(false);
 
         using var document = ParseResponse(body);
 

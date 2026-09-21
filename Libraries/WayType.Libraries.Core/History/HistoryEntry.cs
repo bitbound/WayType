@@ -20,5 +20,10 @@ public sealed class HistoryEntry
 
     public string? PromptTitle { get; set; }
 
+    /// <summary>
+    /// Name of the saved WAV in the audio directory, when the recording was kept.
+    /// </summary>
+    public string? AudioFileName { get; set; }
+
     public long DurationMs { get; set; }
 }

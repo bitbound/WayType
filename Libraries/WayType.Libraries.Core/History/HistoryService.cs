@@ -24,15 +24,17 @@ public sealed class HistoryService : IHistoryService
 
     private readonly IFileStore _fileStore;
     private readonly IPlatformPaths _paths;
+    private readonly IRecordingStore _recordings;
     private readonly ISettingsService _settings;
     private readonly Lock _sync = new();
 
     private List<HistoryEntry>? _cached;
 
-    public HistoryService(IPlatformPaths paths, IFileStore fileStore, ISettingsService settings)
+    public HistoryService(IPlatformPaths paths, IFileStore fileStore, IRecordingStore recordings, ISettingsService settings)
     {
         _paths = paths;
         _fileStore = fileStore;
+        _recordings = recordings;
         _settings = settings;
     }
 
@@ -51,16 +53,19 @@ public sealed class HistoryService : IHistoryService
         ArgumentNullException.ThrowIfNull(entry);
 
         List<HistoryEntry> next;
+        List<HistoryEntry> trimmed = [];
 
         lock (_sync)
         {
-            next = Trim(Load());
+            next = Trim(Load(), trimmed);
 
             next.Add(entry);
-            next = Trim(next);
+            next = Trim(next, trimmed);
 
             _cached = next;
         }
+
+        RemoveRecordings(trimmed);
 
         await WriteAsync(next, cancellationToken);
 
@@ -70,18 +75,26 @@ public sealed class HistoryService : IHistoryService
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         List<HistoryEntry> next;
+        HistoryEntry? removed;
 
         lock (_sync)
         {
             next = Load();
 
-            if (next.RemoveAll(entry => entry.Id == id) == 0)
+            var index = next.FindIndex(entry => entry.Id == id);
+
+            if (index < 0)
             {
                 return false;
             }
 
+            removed = next[index];
+            next.RemoveAt(index);
+
             _cached = next;
         }
+
+        _recordings.Delete(removed.AudioFileName);
 
         await WriteAsync(next, cancellationToken);
 
@@ -92,14 +105,28 @@ public sealed class HistoryService : IHistoryService
 
     public async Task ClearAsync(CancellationToken cancellationToken = default)
     {
+        List<HistoryEntry> removed;
+
         lock (_sync)
         {
+            removed = Load();
             _cached = [];
         }
+
+        RemoveRecordings(removed);
 
         await WriteAsync([], cancellationToken);
 
         HistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    // Once a row is gone its audio is unreachable, so it goes with the row.
+    private void RemoveRecordings(IEnumerable<HistoryEntry> entries)
+    {
+        foreach (var entry in entries)
+        {
+            _recordings.Delete(entry.AudioFileName);
+        }
     }
 
     private List<HistoryEntry> Load()
@@ -138,7 +165,7 @@ public sealed class HistoryService : IHistoryService
         _fileStore.RestrictToOwner(_paths.HistoryFilePath);
     }
 
-    private List<HistoryEntry> Trim(List<HistoryEntry> entries)
+    private List<HistoryEntry> Trim(List<HistoryEntry> entries, List<HistoryEntry> dropped)
     {
         var keep = Math.Clamp(_settings.Current.HistoryItemsToKeep, 0, HardCap);
 
@@ -147,7 +174,11 @@ public sealed class HistoryService : IHistoryService
             return entries;
         }
 
-        return [.. NewestFirst(entries).Take(keep)];
+        var kept = NewestFirst(entries).Take(keep).ToList();
+
+        dropped.AddRange(entries.Except(kept));
+
+        return kept;
     }
 
     private static IEnumerable<HistoryEntry> NewestFirst(List<HistoryEntry> entries)

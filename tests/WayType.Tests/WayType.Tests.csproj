@@ -5,6 +5,10 @@
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- The app project is a self-contained executable and can only be referenced by one, which is what lets
+         the dependency graph test reach AddWayType. -->
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\WayType\WayType.csproj" />
     <ProjectReference Include="..\..\Libraries\WayType.Libraries.Core\WayType.Libraries.Core.csproj" />
     <ProjectReference Include="..\..\Libraries\WayType.Libraries.Speech\WayType.Libraries.Speech.csproj" />
     <ProjectReference Include="..\..\Libraries\WayType.Libraries.Updater\WayType.Libraries.Updater.csproj" />
