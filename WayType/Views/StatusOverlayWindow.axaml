@@ -4,10 +4,10 @@
         Title="WayType status"
         Background="Transparent"
         TransparencyLevelHint="Transparent"
-        SystemDecorations="None"
+        WindowDecorations="None"
         CanResize="False"
         ShowInTaskbar="False"
-        ShowActivated="False"
+        ShowActivated="True"
         Topmost="True"
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="Manual">

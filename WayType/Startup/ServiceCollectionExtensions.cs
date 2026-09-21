@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WayType.Libraries.Core.Audio;
 using WayType.Libraries.Core.Dictation;
@@ -14,8 +13,6 @@ using WayType.Libraries.Native.Linux;
 using WayType.Libraries.Portal;
 using WayType.Libraries.Speech;
 using WayType.Libraries.Updater;
-using WayType.Services;
-using WayType.ViewModels;
 using WayType.Views;
 
 namespace WayType.Startup;

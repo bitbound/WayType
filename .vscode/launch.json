@@ -1,0 +1,11 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Avalonia: WayType",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/WayType/WayType.csproj"
+    }
+  ]
+}
