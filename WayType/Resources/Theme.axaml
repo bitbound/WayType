@@ -44,6 +44,11 @@
 
       <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#F22B2B2B" />
       <SolidColorBrush x:Key="OverlayBorderBrush" Color="#33FFFFFF" />
+
+      <SolidColorBrush x:Key="SnackbarInfoBrush" Color="#F22B2B2B" />
+      <SolidColorBrush x:Key="SnackbarSuccessBrush" Color="#F21E3A2C" />
+      <SolidColorBrush x:Key="SnackbarErrorBrush" Color="#F23A1E22" />
+      <SolidColorBrush x:Key="SnackbarTextBrush" Color="#F2FFFFFF" />
     </ResourceDictionary>
 
     <ResourceDictionary x:Key="Light">
@@ -86,6 +91,11 @@
 
       <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#F2FFFFFF" />
       <SolidColorBrush x:Key="OverlayBorderBrush" Color="#33000000" />
+
+      <SolidColorBrush x:Key="SnackbarInfoBrush" Color="#F2FFFFFF" />
+      <SolidColorBrush x:Key="SnackbarSuccessBrush" Color="#F2E6F5EC" />
+      <SolidColorBrush x:Key="SnackbarErrorBrush" Color="#F2FBEAEC" />
+      <SolidColorBrush x:Key="SnackbarTextBrush" Color="#F2000000" />
     </ResourceDictionary>
 
   </ResourceDictionary.ThemeDictionaries>

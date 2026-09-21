@@ -60,23 +60,40 @@ public sealed class FileLoggerProvider : ILoggerProvider
             return;
         }
 
-        var line = FormattableString.Invariant(
-            $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {Short(categoryName)} {message}");
-
         lock (_writeLock)
         {
             try
             {
                 Directory.CreateDirectory(_directory);
+                Restrict(_directory);
 
                 RollIfNeeded();
 
+                var line = FormattableString.Invariant(
+                    $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {Short(categoryName)} {message}");
+
                 File.AppendAllText(LogFilePath, line + Environment.NewLine + (exception is null ? string.Empty : exception + Environment.NewLine));
+
+                // Log lines can quote endpoint URLs and error bodies, so the file is owner-only to
+                // match settings, history and recordings.
+                Restrict(LogFilePath);
             }
             catch (Exception writeException) when (writeException is IOException or UnauthorizedAccessException)
             {
                 // Logging must never be the reason a dictation fails.
             }
+        }
+    }
+
+    private static void Restrict(string path)
+    {
+        try
+        {
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            // A file system without Unix permissions is not a reason to stop logging.
         }
     }
 

@@ -61,6 +61,9 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     private int _maximumRecordingSeconds = 120;
 
     [ObservableProperty]
+    private int _typingDelayMs = AppSettings.DefaultTypingDelayMs;
+
+    [ObservableProperty]
     private bool _checkForUpdates = true;
 
     [ObservableProperty]
@@ -451,6 +454,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         settings.HistoryItemsToKeep = Math.Clamp(HistoryItemsToKeep, 0, 5000);
         settings.KeepRecordings = KeepRecordings;
         settings.MaximumRecordingSeconds = Math.Clamp(MaximumRecordingSeconds, 1, 3600);
+        settings.TypingDelayMs = Math.Clamp(TypingDelayMs, 1, 100);
         settings.CheckForUpdates = CheckForUpdates;
         settings.DebugLogging = DebugLogging;
         settings.InputDeviceId = SelectedDevice?.Device.Id;
@@ -542,6 +546,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         HistoryItemsToKeep = settings.HistoryItemsToKeep;
         KeepRecordings = settings.KeepRecordings;
         MaximumRecordingSeconds = settings.MaximumRecordingSeconds;
+        TypingDelayMs = settings.TypingDelayMs;
         CheckForUpdates = settings.CheckForUpdates;
         DebugLogging = settings.DebugLogging;
 

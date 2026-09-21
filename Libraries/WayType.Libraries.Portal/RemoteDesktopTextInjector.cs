@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Tmds.DBus;
 using WayType.Libraries.Core.Input;
 using WayType.Libraries.Core.Platform;
+using WayType.Libraries.Core.Settings;
 
 namespace WayType.Libraries.Portal;
 
@@ -13,9 +14,17 @@ public sealed class RemoteDesktopTextInjector(
     IKeysymResolver keysyms,
     IKeycodeResolver keycodes,
     IPlatformPaths paths,
+    ISettingsService settings,
     ILogger<RemoteDesktopTextInjector> logger) : ITextInputInjector
 {
-    private const int KeyDelayMs = 10;
+    /// <summary>
+    /// Bounds on the configured pause. Zero would put the press and release in the same input frame,
+    /// which types nothing at all, so the floor is one millisecond.
+    /// </summary>
+    private const int MinKeyDelayMs = 1;
+
+    private const int MaxKeyDelayMs = 100;
+
     private const int LeftShiftKeycode = 42;
     private const uint KeyboardAndPointerTypes = 3u;
     private const uint PersistUntilRevoked = 2u;
@@ -27,6 +36,7 @@ public sealed class RemoteDesktopTextInjector(
     private readonly IKeysymResolver _keysyms = keysyms;
     private readonly IKeycodeResolver _keycodes = keycodes;
     private readonly IPlatformPaths _paths = paths;
+    private readonly ISettingsService _settings = settings;
     private readonly ILogger<RemoteDesktopTextInjector> _logger = logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -279,15 +289,19 @@ public sealed class RemoteDesktopTextInjector(
     {
         var session = new ObjectPath(SessionHandle);
         var emptyOptions = new Dictionary<string, object>();
+        var delay = ResolveDelay(_settings.Current.TypingDelayMs);
+        var injected = 0;
+        var skipped = 0;
 
         foreach (var character in text)
         {
             if (_keysyms.TryResolve(character.ToString(), out var keysym))
             {
                 await Proxy.NotifyKeyboardKeysymAsync(session, emptyOptions, (int)keysym, 1u);
-                await Task.Delay(KeyDelayMs, cancellationToken);
+                await PauseAsync(delay, cancellationToken);
                 await Proxy.NotifyKeyboardKeysymAsync(session, emptyOptions, (int)keysym, 0u);
-                await Task.Delay(KeyDelayMs, cancellationToken);
+                await PauseAsync(delay, cancellationToken);
+                injected++;
                 continue;
             }
 
@@ -296,25 +310,48 @@ public sealed class RemoteDesktopTextInjector(
                 if (needsShift)
                 {
                     await Proxy.NotifyKeyboardKeycodeAsync(session, emptyOptions, LeftShiftKeycode, 1u);
-                    await Task.Delay(KeyDelayMs, cancellationToken);
+                    await PauseAsync(delay, cancellationToken);
                 }
 
                 await Proxy.NotifyKeyboardKeycodeAsync(session, emptyOptions, keycode, 1u);
-                await Task.Delay(KeyDelayMs, cancellationToken);
+                await PauseAsync(delay, cancellationToken);
                 await Proxy.NotifyKeyboardKeycodeAsync(session, emptyOptions, keycode, 0u);
-                await Task.Delay(KeyDelayMs, cancellationToken);
+                await PauseAsync(delay, cancellationToken);
 
                 if (needsShift)
                 {
                     await Proxy.NotifyKeyboardKeycodeAsync(session, emptyOptions, LeftShiftKeycode, 0u);
-                    await Task.Delay(KeyDelayMs, cancellationToken);
+                    await PauseAsync(delay, cancellationToken);
                 }
 
+                injected++;
                 continue;
             }
 
-            _logger.LogDebug("No keysym or keycode mapping for '{Character}'; skipped it.", character);
+            skipped++;
+
+            // Warning rather than Debug: a character with no mapping is text that will not appear,
+            // and hiding that behind debug logging is how it goes unnoticed.
+            _logger.LogWarning("No keysym or keycode mapping for '{Character}'; skipped it.", character);
         }
+
+        // One line per dictation. It records the delay actually in effect and whether anything was
+        // dropped for want of a mapping, which separates "nothing typed" from "nothing mapped".
+        _logger.LogInformation(
+            "Injected {Injected} characters with a {Delay} ms key delay ({Skipped} unmapped).",
+            injected,
+            delay,
+            skipped);
+    }
+
+    internal static int ResolveDelay(int configuredDelayMs)
+    {
+        return Math.Clamp(configuredDelayMs, MinKeyDelayMs, MaxKeyDelayMs);
+    }
+
+    private static Task PauseAsync(int milliseconds, CancellationToken cancellationToken)
+    {
+        return milliseconds <= 0 ? Task.CompletedTask : Task.Delay(milliseconds, cancellationToken);
     }
 
     private void TearDownSession()

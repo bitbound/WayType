@@ -8,7 +8,7 @@ namespace WayType.Libraries.Native.Linux;
 /// <summary>
 /// Captures microphone audio through libpulse-simple, which PipeWire serves on Linux.
 /// </summary>
-public sealed class PulseAudioRecorder(ILogger<PulseAudioRecorder> logger) : IAudioRecorder
+public sealed class PulseAudioRecorder(ILogger<PulseAudioRecorder> logger) : IAudioRecorder, IAudioLevelMeter
 {
     private const int SampleRate = 16_000;
     private const int ChannelCount = 1;
@@ -146,6 +146,7 @@ public sealed class PulseAudioRecorder(ILogger<PulseAudioRecorder> logger) : IAu
             }
 
             Append(chunk, chunk.Length, ref buffer, ref length);
+            PublishLevel(chunk);
         }
 
         var tail = DrainTail(handle, ref spec, cancellationToken);
@@ -212,6 +213,52 @@ public sealed class PulseAudioRecorder(ILogger<PulseAudioRecorder> logger) : IAu
         logger.LogDebug("Drained {Bytes} buffered bytes at the end of the take.", filled);
 
         return filled == tail.Length ? tail : tail[..filled];
+    }
+
+    public event EventHandler<float>? LevelChanged;
+
+    public float Level { get; private set; }
+
+    /// <summary>
+    /// Reports the peak of a captured frame. The primed frame is deliberately not reported, since it
+    /// is PipeWire's stale ring buffer rather than anything the microphone picked up.
+    /// </summary>
+    private void PublishLevel(byte[] chunk)
+    {
+        if (LevelChanged is null)
+        {
+            return;
+        }
+
+        Level = ComputePeak(chunk);
+        LevelChanged.Invoke(this, Level);
+    }
+
+    /// <summary>
+    /// Peak amplitude of a little-endian float32 frame, clamped to the valid range.
+    /// </summary>
+    internal static float ComputePeak(byte[] chunk)
+    {
+        var samples = MemoryMarshal.Cast<byte, float>(chunk.AsSpan());
+        var peak = 0f;
+
+        foreach (var sample in samples)
+        {
+            // Uninitialized or corrupt frames can carry NaN, which would poison every comparison.
+            if (float.IsNaN(sample))
+            {
+                continue;
+            }
+
+            var magnitude = Math.Abs(sample);
+
+            if (magnitude > peak)
+            {
+                peak = magnitude;
+            }
+        }
+
+        return Math.Clamp(peak, 0f, 1f);
     }
 
     private static void Append(byte[] source, int count, ref byte[] buffer, ref int length)    {

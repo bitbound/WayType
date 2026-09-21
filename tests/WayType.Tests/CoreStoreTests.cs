@@ -16,9 +16,12 @@ public class SettingsServiceTests
         settings.Current.Theme = ThemeMode.Dark;
         settings.Current.Hotkey = "CTRL+ALT+F5";
         settings.Current.HistoryItemsToKeep = 7;
+        settings.Current.KeepRecordings = false;
+        settings.Current.TypingDelayMs = 5;
         settings.Current.SpeechToText.Endpoint = "http://localhost:8000/v1";
         settings.Current.SpeechToText.ApiKey = "secret-key";
         settings.Current.PostProcessing.Enabled = true;
+        settings.Current.PostProcessing.TimeoutSeconds = 300;
         settings.Current.PostProcessing.Options.Temperature = 0.2;
         await settings.SaveAsync(ct);
 
@@ -27,9 +30,12 @@ public class SettingsServiceTests
         Assert.Equal(ThemeMode.Dark, reloaded.Current.Theme);
         Assert.Equal("CTRL+ALT+F5", reloaded.Current.Hotkey);
         Assert.Equal(7, reloaded.Current.HistoryItemsToKeep);
+        Assert.False(reloaded.Current.KeepRecordings);
+        Assert.Equal(5, reloaded.Current.TypingDelayMs);
         Assert.Equal("http://localhost:8000/v1", reloaded.Current.SpeechToText.Endpoint);
         Assert.Equal("secret-key", reloaded.Current.SpeechToText.ApiKey);
         Assert.True(reloaded.Current.PostProcessing.Enabled);
+        Assert.Equal(300, reloaded.Current.PostProcessing.TimeoutSeconds);
         Assert.Equal(0.2, reloaded.Current.PostProcessing.Options.Temperature);
     }
 

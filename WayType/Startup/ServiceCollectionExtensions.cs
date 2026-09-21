@@ -59,7 +59,12 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IKeysymResolver, XkbKeysymResolver>();
         services.AddSingleton<IKeycodeResolver, EvdevKeycodeResolver>();
-        services.AddSingleton<IAudioRecorder, PulseAudioRecorder>();
+
+        // One recorder instance backs both interfaces, so the level meter reports the same stream
+        // the dictation is recording.
+        services.AddSingleton<PulseAudioRecorder>();
+        services.AddSingleton<IAudioRecorder>(sp => sp.GetRequiredService<PulseAudioRecorder>());
+        services.AddSingleton<IAudioLevelMeter>(sp => sp.GetRequiredService<PulseAudioRecorder>());
         services.AddSingleton<IAudioPlayer, PulseAudioPlayer>();
         services.AddSingleton<IAudioCaptureDeviceEnumerator, PulseAudioDeviceEnumerator>();
 
@@ -78,6 +83,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IThemeProvider, ThemeProvider>();
         services.AddSingleton<INavigationProvider, NavigationProvider>();
+        services.AddSingleton<ISnackbarService, SnackbarService>();
 
         services.AddSingleton<IMainWindowViewModel, MainWindowViewModel>();
         services.AddSingleton<SettingsViewModel>();

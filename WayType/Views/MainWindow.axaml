@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WayType.ViewModels"
         xmlns:conv="using:WayType.Converters"
+        xmlns:views="using:WayType.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
@@ -83,7 +84,6 @@
             BorderThickness="0,1,0,0"
             Padding="12,6">
       <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-
         <PathIcon Grid.Column="0"
                   Data="{StaticResource mic_on_regular}"
                   Foreground="{DynamicResource SuccessColor}"
@@ -116,6 +116,12 @@
 
       </Grid>
     </Border>
+
+    <!-- Floats above the page content, clear of the status bar below it. -->
+    <views:SnackbarHost Grid.Row="0"
+                        Grid.RowSpan="2"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,0,52" />
 
   </Grid>
 </Window>

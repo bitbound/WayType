@@ -97,6 +97,16 @@
     <Setter Property="Background" Value="{DynamicResource PrimaryHoverBrush}" />
   </Style>
 
+  <Style Selector="Button.Default.VariantOutlined">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+  </Style>
+
+  <Style Selector="Button.Default.VariantOutlined:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DividerLightBrush}" />
+  </Style>
+
   <Style Selector="Button.Primary.VariantText">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />

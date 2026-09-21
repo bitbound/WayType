@@ -1,8 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
+using WayType.Libraries.Core.Audio;
 using WayType.Libraries.Core.Dictation;
 using WayType.Views;
 
@@ -20,7 +20,10 @@ public interface IStatusOverlayController
 /// Shows a small floating pill at the bottom centre of the screen while a dictation is running, so
 /// the state is visible without switching back to the WayType window.
 /// </summary>
-public sealed class StatusOverlayController(IDictationCoordinator dictation, ILogger<StatusOverlayController> logger) : IStatusOverlayController
+public sealed class StatusOverlayController(
+    IDictationCoordinator dictation,
+    IAudioLevelMeter levelMeter,
+    ILogger<StatusOverlayController> logger) : IStatusOverlayController
 {
     /// <summary>
     /// Gap between the pill and the bottom of the work area. The work area already excludes docks
@@ -28,8 +31,24 @@ public sealed class StatusOverlayController(IDictationCoordinator dictation, ILo
     /// </summary>
     private const double BottomMargin = 28;
 
+    private const int FramesPerSecond = 30;
+
+    /// <summary>
+    /// How fast the bars fall back to rest. Higher settles quicker, which reads as less bouncy.
+    /// </summary>
+    private const double DecayPerFrame = 0.72;
+
     private StatusOverlayWindow? _window;
+    private DispatcherTimer? _animation;
     private bool _started;
+
+    /// <summary>
+    /// Written by the capture thread and read by the UI thread, so it is stored as bits to keep the
+    /// read and write indivisible.
+    /// </summary>
+    private int _levelBits;
+    private double _smoothedLevel;
+    private int _frame;
 
     public void Start()
     {
@@ -41,19 +60,20 @@ public sealed class StatusOverlayController(IDictationCoordinator dictation, ILo
         _started = true;
 
         dictation.StateChanged += (_, _) => Dispatcher.UIThread.Post(Refresh);
+        levelMeter.LevelChanged += (_, level) => Interlocked.Exchange(ref _levelBits, BitConverter.SingleToInt32Bits(level));
     }
 
     private void Refresh()
     {
         // Only the states where something is actively happening are worth a floating indicator.
         // Typing is included so the pill does not flicker between post-processing and the result.
-        var (text, iconKey, accentKey) = dictation.State switch
+        var (text, iconKey, isListening) = dictation.State switch
         {
-            DictationState.Listening => ("Listening", "mic_on_regular", "SuccessColor"),
-            DictationState.Transcribing => ("Transcribing", "arrow_sync_regular", "PrimaryColor"),
-            DictationState.PostProcessing => ("Post-processing", "arrow_sync_regular", "PrimaryColor"),
-            DictationState.Injecting => ("Typing", "text_regular", "PrimaryColor"),
-            _ => (null, string.Empty, string.Empty),
+            DictationState.Listening => ("Listening", "mic_on_regular", true),
+            DictationState.Transcribing => ("Transcribing", "arrow_sync_regular", false),
+            DictationState.PostProcessing => ("Post-processing", "arrow_sync_regular", false),
+            DictationState.Injecting => ("Typing", "text_regular", false),
+            _ => (null, string.Empty, false),
         };
 
         if (text is null)
@@ -62,27 +82,23 @@ public sealed class StatusOverlayController(IDictationCoordinator dictation, ILo
             return;
         }
 
-        Show(text, iconKey, accentKey);
+        Show(text, iconKey, isListening);
     }
 
-    private void Show(string text, string iconKey, string accentKey)
+    private void Show(string text, string iconKey, bool isListening)
     {
         try
         {
-            if (Application.Current?.TryFindResource(accentKey, out var accent) != true || accent is not IBrush brush)
-            {
-                brush = Brushes.White;
-            }
-
             _window ??= CreateWindow();
 
-            _window.SetStatus(text, iconKey, brush);
+            _window.SetStatus(text, iconKey, isListening);
 
             if (!_window.IsVisible)
             {
                 _window.Show();
             }
 
+            SetAnimating(isListening);
             Position();
         }
         catch (Exception ex)
@@ -102,8 +118,57 @@ public sealed class StatusOverlayController(IDictationCoordinator dictation, ILo
         return window;
     }
 
+    private void SetAnimating(bool enabled)
+    {
+        if (enabled)
+        {
+            if (_animation is not null)
+            {
+                return;
+            }
+
+            _animation = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.0 / FramesPerSecond) };
+            _animation.Tick += (_, _) => AdvanceWaveform();
+            _animation.Start();
+
+            return;
+        }
+
+        if (_animation is null)
+        {
+            return;
+        }
+
+        _animation.Stop();
+        _animation = null;
+        _smoothedLevel = 0;
+        _frame = 0;
+    }
+
+    private void AdvanceWaveform()
+    {
+        if (_window is null)
+        {
+            return;
+        }
+
+        _frame++;
+
+        var level = BitConverter.Int32BitsToSingle(Volatile.Read(ref _levelBits));
+
+        // Rising edges follow the microphone immediately so speech registers at once; falling edges
+        // ease down so the bars bounce instead of snapping to nothing between syllables.
+        _smoothedLevel = level > _smoothedLevel
+            ? level
+            : Math.Max(level, _smoothedLevel * DecayPerFrame);
+
+        _window.SetLevel(_smoothedLevel, _frame);
+    }
+
     private void Hide()
     {
+        SetAnimating(false);
+
         if (_window is null || !_window.IsVisible)
         {
             return;

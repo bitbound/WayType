@@ -25,3 +25,19 @@ public interface IAudioPlayer
     /// </summary>
     Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Publishes how loud the most recent captured frame was, so a UI can react to the microphone.
+/// </summary>
+public interface IAudioLevelMeter
+{
+    /// <summary>
+    /// Peak amplitude of the most recent frame, from 0 (silence) to 1 (full scale).
+    /// </summary>
+    float Level { get; }
+
+    /// <summary>
+    /// Raised on the capture thread as frames arrive. Handlers must not block.
+    /// </summary>
+    event EventHandler<float>? LevelChanged;
+}

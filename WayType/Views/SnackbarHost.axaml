@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="WayType.Views.SnackbarHost"
+             IsHitTestVisible="False">
+
+  <UserControl.Styles>
+    <Style Selector="Border.snack">
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="14,9" />
+      <Setter Property="Background" Value="{DynamicResource SnackbarInfoBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource OverlayBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Opacity" Value="0" />
+      <!-- One transition drives both the entry and the exit fade. -->
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+        </Transitions>
+      </Setter>
+    </Style>
+
+    <Style Selector="Border.snack.success">
+      <Setter Property="Background" Value="{DynamicResource SnackbarSuccessBrush}" />
+    </Style>
+
+    <Style Selector="Border.snack.error">
+      <Setter Property="Background" Value="{DynamicResource SnackbarErrorBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.snackText">
+      <Setter Property="Foreground" Value="{DynamicResource SnackbarTextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="MaxWidth" Value="420" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel x:Name="SnackStack"
+              Orientation="Vertical"
+              Spacing="8"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Bottom" />
+
+</UserControl>

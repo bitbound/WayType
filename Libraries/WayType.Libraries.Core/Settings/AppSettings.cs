@@ -42,6 +42,19 @@ public sealed class AppSettings
 
     public int MaximumRecordingSeconds { get; set; } = 120;
 
+    /// <summary>
+    /// Pause between injected key events. Higher values type slower but give the target application
+    /// more time to keep up.
+    /// </summary>
+    /// <remarks>
+    /// Do not lower this without testing. At very small values the press and release land in the same
+    /// compositor input frame and no text is delivered at all, which is why 10 is the default rather
+    /// than something more ambitious.
+    /// </remarks>
+    public int TypingDelayMs { get; set; } = DefaultTypingDelayMs;
+
+    public const int DefaultTypingDelayMs = 10;
+
     public string? InputDeviceId { get; set; }
 
     public string? InputDeviceName { get; set; }

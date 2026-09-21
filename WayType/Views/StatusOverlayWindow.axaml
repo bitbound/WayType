@@ -7,10 +7,34 @@
         WindowDecorations="None"
         CanResize="False"
         ShowInTaskbar="False"
-        ShowActivated="True"
+        ShowActivated="False"
         Topmost="True"
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="Manual">
+
+  <!-- Colors come from styles rather than being resolved in code, so the theme dictionaries are
+       consulted with this window's theme variant. -->
+  <Window.Styles>
+    <Style Selector="PathIcon#MicIcon">
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+    </Style>
+
+    <Style Selector="PathIcon#MicIcon.listening">
+      <Setter Property="Foreground" Value="{DynamicResource SuccessColor}" />
+    </Style>
+
+    <Style Selector="Rectangle.bar">
+      <Setter Property="Fill" Value="{DynamicResource PrimaryColor}" />
+      <Setter Property="Width" Value="3" />
+      <Setter Property="RadiusX" Value="1.5" />
+      <Setter Property="RadiusY" Value="1.5" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Rectangle.bar.listening">
+      <Setter Property="Fill" Value="{DynamicResource SuccessColor}" />
+    </Style>
+  </Window.Styles>
 
   <Border Background="{DynamicResource OverlayBackgroundBrush}"
           BorderBrush="{DynamicResource OverlayBorderBrush}"
@@ -23,8 +47,20 @@
                 Data="{DynamicResource mic_on_regular}"
                 Width="16"
                 Height="16"
-                Foreground="{DynamicResource SuccessColor}"
                 VerticalAlignment="Center" />
+
+      <StackPanel x:Name="WavePanel"
+                  Orientation="Horizontal"
+                  Spacing="2"
+                  Height="18"
+                  VerticalAlignment="Center"
+                  IsVisible="False">
+        <Rectangle x:Name="Bar0" Classes="bar" />
+        <Rectangle x:Name="Bar1" Classes="bar" />
+        <Rectangle x:Name="Bar2" Classes="bar" />
+        <Rectangle x:Name="Bar3" Classes="bar" />
+        <Rectangle x:Name="Bar4" Classes="bar" />
+      </StackPanel>
 
       <TextBlock x:Name="StatusText"
                  VerticalAlignment="Center"
