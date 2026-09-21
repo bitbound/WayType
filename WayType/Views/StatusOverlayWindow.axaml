@@ -36,6 +36,9 @@
     </Style>
   </Window.Styles>
 
+  <!-- WindowDecorations=None plus Topmost and ShowInTaskbar=False map to _NET_WM_STATE_ABOVE and
+       _NET_WM_STATE_SKIP_TASKBAR on X11. The controller re-applies the last two once the window is
+       mapped, because some window managers only honour those atoms on an existing window. -->
   <Border Background="{DynamicResource OverlayBackgroundBrush}"
           BorderBrush="{DynamicResource OverlayBorderBrush}"
           BorderThickness="1"

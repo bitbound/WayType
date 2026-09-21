@@ -18,14 +18,33 @@ internal sealed class Program
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
+    /// <summary>
+    /// Set to "wayland" to try the native Wayland backend. X11, through XWayland on a Wayland
+    /// session, is the default because Avalonia's Wayland backend leaves these unimplemented and the
+    /// dictation indicator needs all of them: positioning a window, keeping it above others, keeping
+    /// it out of the task list, and showing it without activating it.
+    /// </summary>
+    private const string WindowingOverrideVariable = "WAYTYPE_WINDOWING";
+
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
+    {
+        var builder = AppBuilder.Configure<App>()
+            .UsePlatformDetect();
+
+        // Opt-in only. UseWaylandWithFallback still falls back to the X11 backend configured above if
+        // the compositor cannot be used, so this cannot leave the app with no windowing system.
+        if (string.Equals(Environment.GetEnvironmentVariable(WindowingOverrideVariable), "wayland", StringComparison.OrdinalIgnoreCase))
+        {
+            builder = builder.UseWaylandWithFallback();
+        }
+
+        return builder
 #if DEBUG
             .WithDeveloperTools()
 #endif
             .WithInterFont()
             .LogToTrace();
+    }
 
     private static bool TryRunUpdateHandoff(string[] args)
     {

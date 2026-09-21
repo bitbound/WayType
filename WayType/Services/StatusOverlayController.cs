@@ -41,6 +41,8 @@ public sealed class StatusOverlayController(
     private StatusOverlayWindow? _window;
     private DispatcherTimer? _animation;
     private bool _started;
+    private bool? _canPosition;
+    private bool _warnedAboutPositioning;
 
     /// <summary>
     /// Written by the capture thread and read by the UI thread, so it is stored as bits to keep the
@@ -96,6 +98,7 @@ public sealed class StatusOverlayController(
             if (!_window.IsVisible)
             {
                 _window.Show();
+                ReassertWindowHints();
             }
 
             SetAnimating(isListening);
@@ -105,6 +108,29 @@ public sealed class StatusOverlayController(
         {
             // The indicator is a convenience. It must never break dictation.
             logger.LogWarning(ex, "Could not show the dictation status indicator.");
+        }
+    }
+
+    /// <summary>
+    /// Re-applies the always-on-top and hidden-from-task-list hints after the window is mapped. The
+    /// X11 backend turns these into _NET_WM_STATE_ABOVE and _NET_WM_STATE_SKIP_TASKBAR, and a window
+    /// manager can ignore atoms that were only present before the window was mapped. Setting them
+    /// through XAML alone was not enough for the indicator to stay above other windows.
+    /// </summary>
+    private void ReassertWindowHints()
+    {
+        try
+        {
+            // The properties only reach the platform impl when the value actually changes, so each
+            // is toggled away and back rather than set to the value it already holds.
+            _window!.Topmost = false;
+            _window.Topmost = true;
+            _window.ShowInTaskbar = true;
+            _window.ShowInTaskbar = false;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Could not re-assert the overlay window hints.");
         }
     }
 
@@ -184,6 +210,14 @@ public sealed class StatusOverlayController(
             return;
         }
 
+        // Wayland gives a client no way to place a surface, so every attempt is a silent no-op there.
+        // Repositioning on each size change would be pointless churn, so it is done once and then
+        // left to the compositor.
+        if (_canPosition == false)
+        {
+            return;
+        }
+
         var screen = _window.Screens.Primary ?? _window.Screens.All.FirstOrDefault();
 
         if (screen is null)
@@ -214,5 +248,32 @@ public sealed class StatusOverlayController(
         var y = area.Y + area.Height - height - (int)Math.Round(BottomMargin * scaling);
 
         _window.Position = new PixelPoint(x, y);
+
+        if (_canPosition is null)
+        {
+            // Read the position back on the next loop iteration. If it did not stick, this backend
+            // has no server-side placement and the compositor is in charge.
+            Dispatcher.UIThread.Post(() => VerifyPosition(new PixelPoint(x, y)), DispatcherPriority.Background);
+        }
+    }
+
+    private void VerifyPosition(PixelPoint requested)
+    {
+        if (_window is null || _canPosition is not null)
+        {
+            return;
+        }
+
+        _canPosition = _window.Position == requested;
+
+        if (_canPosition == false && !_warnedAboutPositioning)
+        {
+            _warnedAboutPositioning = true;
+
+            logger.LogInformation(
+                "This windowing backend does not let the app place its own windows, so the dictation " +
+                "indicator is placed by the compositor. Add a window rule for 'WayType status' to keep " +
+                "it above other windows and out of the task list.");
+        }
     }
 }
