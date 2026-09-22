@@ -37,7 +37,7 @@ public class LibPulseSampleFormatTests
 /// </summary>
 public class PulseAudioPlayerTests
 {
-    [Fact]
+    [SkipOnCiFact]
     public async Task PlayAsync_WithASilentClip_OpensWritesAndDrains()
     {
         if (!NativeLibrary.TryLoad("libpulse-simple.so.0", out _))
