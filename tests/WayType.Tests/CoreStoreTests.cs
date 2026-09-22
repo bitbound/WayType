@@ -255,7 +255,7 @@ public class PromptServiceTests
         var ct = TestContext.Current.CancellationToken;
 
         var created = await prompts.CreateAsync("My prompt", ct);
-        created.Instructions = "Fix this: ${sst_output}";
+        created.Instructions = "Fix this: ${stt_output}";
         await prompts.UpdateAsync(created, ct);
 
         var reloaded = new PromptService(new TestPlatformPaths(), fileStore, TestSettings.Create(fileStore));
@@ -263,7 +263,7 @@ public class PromptServiceTests
 
         Assert.NotNull(stored);
         Assert.Equal("My prompt", stored.Title);
-        Assert.Equal("Fix this: ${sst_output}", stored.Instructions);
+        Assert.Equal("Fix this: ${stt_output}", stored.Instructions);
         Assert.DoesNotContain(reloaded.GetAll(), prompt => prompt.IsBuiltIn && prompt.Id != TranscriptionPrompt.BuiltInId);
     }
 
@@ -284,7 +284,7 @@ public class PromptServiceTests
         var ct = TestContext.Current.CancellationToken;
 
         var original = await prompts.CreateAsync("Notes", ct);
-        original.Instructions = "Tidy this: ${sst_output}";
+        original.Instructions = "Tidy this: ${stt_output}";
         await prompts.UpdateAsync(original, ct);
 
         var copy = await prompts.DuplicateAsync(original.Id, ct);
@@ -292,7 +292,7 @@ public class PromptServiceTests
         Assert.NotNull(copy);
         Assert.NotEqual(original.Id, copy.Id);
         Assert.Equal("Notes - Copy", copy.Title);
-        Assert.Equal("Tidy this: ${sst_output}", copy.Instructions);
+        Assert.Equal("Tidy this: ${stt_output}", copy.Instructions);
         Assert.False(copy.IsBuiltIn);
     }
 
@@ -355,7 +355,7 @@ public class PromptRendererTests
     [Fact]
     public void Render_ReplacesPlaceholderWithTranscription()
     {
-        var rendered = PromptRenderer.Render("Clean up: ${sst_output}", "hello  there");
+        var rendered = PromptRenderer.Render("Clean up: ${stt_output}", "hello  there");
 
         Assert.Equal("Clean up: hello  there", rendered);
     }

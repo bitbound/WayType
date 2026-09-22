@@ -30,7 +30,7 @@ public sealed class TranscriptionPrompt
         speaker's actual wording and context rather than forcing a punctuation command.
 
         Transcription:
-        ${sst_output}
+        ${stt_output}
         """;
 
     public Guid Id { get; set; } = Guid.NewGuid();

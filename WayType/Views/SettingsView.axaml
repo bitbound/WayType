@@ -373,7 +373,7 @@
                      MinHeight="140"
                      MaxHeight="360"
                      IsEnabled="{Binding !IsPromptReadOnly}"
-                     PlaceholderText="Instructions. Use ${sst_output} where the transcription should be inserted." />
+                     PlaceholderText="Instructions. Use ${stt_output} where the transcription should be inserted." />
           </StackPanel>
         </Border>
 

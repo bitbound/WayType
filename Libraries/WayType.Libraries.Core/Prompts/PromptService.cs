@@ -75,7 +75,7 @@ public sealed class PromptService : IPromptService
         var prompt = new TranscriptionPrompt
         {
             Title = string.IsNullOrWhiteSpace(title) ? NewPromptTitle : title.Trim(),
-            Instructions = "Instructions for the text model.\n\nTranscription:\n${sst_output}",
+            Instructions = "Instructions for the text model.\n\nTranscription:\n${stt_output}",
         };
 
         var prompts = ReadUserPrompts();

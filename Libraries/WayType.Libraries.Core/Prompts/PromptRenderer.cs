@@ -2,7 +2,7 @@ namespace WayType.Libraries.Core.Prompts;
 
 public static class PromptRenderer
 {
-    public const string OutputPlaceholder = "${sst_output}";
+    public const string OutputPlaceholder = "${stt_output}";
 
     /// <summary>
     /// Injects the transcription at the placeholder. Prompts without the placeholder get the
