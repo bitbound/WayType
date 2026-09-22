@@ -97,8 +97,22 @@ jobs:
           user: ${{ secrets.NUGET_USER }}
 
       - name: Publish dotnet tool
-        run: >-
-          dotnet nuget push ./artifacts/waytype.${{ steps.version.outputs.version }}.nupkg
-          --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
-          --source https://api.nuget.org/v3/index.json
-          --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          # NuGet normalizes version strings, so a padded date like 2026.09.22
+          # becomes 2026.9.22. Find the package instead of guessing its name.
+          shopt -s nullglob
+          packages=(./artifacts/*.nupkg)
+          if [[ ${#packages[@]} -eq 0 ]]; then
+            echo "No .nupkg found in ./artifacts" >&2
+            exit 1
+          fi
+
+          printf 'Pushing %s\n' "${packages[@]}"
+          dotnet nuget push "${packages[@]}" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
