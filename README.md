@@ -8,6 +8,8 @@
 
 WayType is a small desktop utility for Linux Wayland sessions. It records the microphone, sends the audio to an OpenAI-compatible speech endpoint, and types the result back as keystrokes.
 
+> Unashamedly vibe-coded.  Inspired by [Handy](https://github.com/cjpais/Handy).
+
 ## Features
 
 - A global hotkey that works while another app has focus.
