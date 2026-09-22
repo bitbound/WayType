@@ -40,7 +40,7 @@
           <HyperlinkButton Grid.Row="3" Grid.Column="1"
                            Classes="Small"
                            Margin="0,8,0,0"
-                           Content="MIT"
+                           Content="GPL-3.0"
                            Command="{Binding OpenUrlCommand}"
                            CommandParameter="{Binding LicenseUrl}" />
         </Grid>

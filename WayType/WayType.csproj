@@ -6,7 +6,7 @@
     <PackageId>waytype</PackageId>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>waytype</ToolCommandName>
-    <Description>Linux voice dictation with global hotkeys and OpenAI-compatible speech-to-text.</Description>
+    <Description>Linux (Wayland) voice typing with global hotkeys and OpenAI-compatible speech-to-text.</Description>
     <PackageTags>dictation;voice;speech-to-text;transcription;linux;wayland;desktop;openai</PackageTags>
     <PackageIcon>appicon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
