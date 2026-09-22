@@ -215,6 +215,17 @@ public class PromptServiceTests
     }
 
     [Fact]
+    public void BuiltInPrompt_IncludesSpokenPunctuationExamples()
+    {
+        var instructions = TranscriptionPrompt.BuiltInInstructions;
+
+        Assert.Contains("release dash candidate", instructions);
+        Assert.Contains("release-candidate", instructions);
+        Assert.Contains("quote blue mode end quote", instructions);
+        Assert.Contains("\"blue mode\"", instructions);
+    }
+
+    [Fact]
     public void GetSelected_WithNoSelection_FallsBackToTheBuiltInPrompt()
     {
         var fileStore = new InMemoryFileStore();

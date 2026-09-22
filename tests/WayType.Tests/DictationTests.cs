@@ -115,6 +115,52 @@ public class DictationCoordinatorTests
     }
 
     [Fact]
+    public async Task StopAsync_WhenCaptureIsSilent_ReturnsToIdleWithoutTranscribing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        _recorder.Result = new PcmAudio([0.001f, -0.001f, 0.0005f, -0.0005f], 16_000, 1);
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        Assert.Equal(DictationState.Idle, _coordinator.State);
+        Assert.Empty(_speechToText.Received);
+        Assert.Empty(_injector.Typed);
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenCaptureHasOnlyAnIsolatedSpike_ReturnsToIdleWithoutTranscribing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        _recorder.Result = new PcmAudio([0.2f, .. Enumerable.Repeat(0f, 999)], 16_000, 1);
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        Assert.Equal(DictationState.Idle, _coordinator.State);
+        Assert.Empty(_speechToText.Received);
+        Assert.Empty(_injector.Typed);
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenCaptureIsQuietSpeech_UsesTheConfiguredThreshold()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        _settings.Current.SilenceRmsThreshold = 0.001f;
+        _recorder.Result = new PcmAudio(Enumerable.Repeat(0.002f, 1_000).ToArray(), 16_000, 1);
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        Assert.Equal(DictationState.Idle, _coordinator.State);
+        Assert.Single(_speechToText.Received);
+        Assert.Equal(["hello there"], _injector.Typed);
+    }
+
+    [Fact]
     public async Task StopAsync_PassesTheSelectedInputDeviceToTheRecorder()
     {
         var ct = TestContext.Current.CancellationToken;

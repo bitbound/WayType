@@ -2,7 +2,7 @@ namespace WayType.Libraries.Core.Settings;
 
 public sealed class PostProcessingSettings
 {
-    public const int DefaultTimeoutSeconds = 120;
+    public const int DefaultTimeoutSeconds = 10;
 
     public bool Enabled { get; set; }
 

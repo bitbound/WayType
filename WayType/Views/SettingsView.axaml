@@ -58,7 +58,7 @@
           <StackPanel Spacing="10">
             <TextBlock Classes="h2" Text="Dictation" />
 
-            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
               <TextBlock Grid.Row="0" Classes="field" Text="Shortcut" />
               <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <Border Classes="HotkeyField" Width="260">
@@ -90,7 +90,7 @@
                         HorizontalAlignment="Left" />
             </Grid>
 
-            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
               <TextBlock Grid.Row="0" Classes="field" Text="Microphone" />
               <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto">
                 <ComboBox ItemsSource="{Binding DeviceOptions}"
@@ -109,8 +109,13 @@
               <TextBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
                        Text="{Binding MaximumRecordingSeconds}" />
 
-              <TextBlock Grid.Row="2" Classes="field" Text="Typing delay (ms)" Margin="0,10,0,0" />
+              <TextBlock Grid.Row="2" Classes="field" Text="Silence threshold" Margin="0,10,0,0" />
               <TextBox Grid.Row="2" Grid.Column="1" Margin="0,10,0,0"
+                       Text="{Binding SilenceRmsThreshold}"
+                       ToolTip.Tip="Lower values pick up quieter speech. Raise it if background noise is transcribed." />
+
+              <TextBlock Grid.Row="3" Classes="field" Text="Typing delay (ms)" Margin="0,10,0,0" />
+              <TextBox Grid.Row="3" Grid.Column="1" Margin="0,10,0,0"
                        Text="{Binding TypingDelayMs}"
                        ToolTip.Tip="Pause between injected keys. Raise it if an application drops characters. Do not go far below 10: very small values can type nothing at all." />
             </Grid>

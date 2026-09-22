@@ -42,6 +42,10 @@ public sealed class AppSettings
 
     public int MaximumRecordingSeconds { get; set; } = 120;
 
+    public float SilenceRmsThreshold { get; set; } = DefaultSilenceRmsThreshold;
+
+    public const float DefaultSilenceRmsThreshold = 0.003f;
+
     /// <summary>
     /// Pause between injected key events. Higher values type slower but give the target application
     /// more time to keep up.

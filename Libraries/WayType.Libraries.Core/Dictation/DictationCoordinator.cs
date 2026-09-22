@@ -13,6 +13,8 @@ namespace WayType.Libraries.Core.Dictation;
 /// </summary>
 public sealed class DictationCoordinator : IDictationCoordinator
 {
+    private const float MinimumActiveSampleRatio = 0.01f;
+
     private readonly ITextInputInjector _injector;
     private readonly ILogger<DictationCoordinator> _logger;
     private readonly TimeProvider _timeProvider;
@@ -153,7 +155,22 @@ public sealed class DictationCoordinator : IDictationCoordinator
                 _activeRun = null;
             }
 
-            if (pcm.FrameCount == 0)
+            var silenceThreshold = Math.Clamp(
+                _settings.Current.SilenceRmsThreshold,
+                0.0001f,
+                0.1f);
+
+            var audioStats = GetAudioStats(pcm, silenceThreshold);
+            _logger.LogDebug(
+                "Captured {Frames} frames with peak {Peak:0.0000}, RMS {Rms:0.0000}, and active ratio {ActiveRatio:0.0000}.",
+                pcm.FrameCount,
+                audioStats.Peak,
+                audioStats.Rms,
+                audioStats.ActiveRatio);
+
+            if (pcm.FrameCount == 0
+                || audioStats.Rms <= silenceThreshold
+                || audioStats.ActiveRatio < MinimumActiveSampleRatio)
             {
                 SetState(DictationState.Idle);
                 return;
@@ -267,6 +284,36 @@ public sealed class DictationCoordinator : IDictationCoordinator
     {
         LastError = message;
         SetState(DictationState.Error);
+    }
+
+    private static (float Peak, float Rms, float ActiveRatio) GetAudioStats(PcmAudio audio, float silenceThreshold)
+    {
+        var peak = 0f;
+        var sumOfSquares = 0d;
+        var finiteSamples = 0;
+        var activeSamples = 0;
+
+        foreach (var sample in audio.InterleavedSamples)
+        {
+            if (!float.IsFinite(sample))
+            {
+                continue;
+            }
+
+            var magnitude = MathF.Abs(sample);
+            peak = MathF.Max(peak, magnitude);
+            sumOfSquares += sample * sample;
+            finiteSamples++;
+
+            if (magnitude > silenceThreshold)
+            {
+                activeSamples++;
+            }
+        }
+
+        return finiteSamples == 0
+            ? (0, 0, 0)
+            : (peak, (float)Math.Sqrt(sumOfSquares / finiteSamples), (float)activeSamples / finiteSamples);
     }
 
     private void SetState(DictationState state)
