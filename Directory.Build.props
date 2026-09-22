@@ -8,9 +8,19 @@
     <Deterministic>true</Deterministic>
     <InvariantGlobalization>false</InvariantGlobalization>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Authors>Jared Goodwin</Authors>
+    <Copyright>Copyright (C) $([System.DateTime]::Now.Year) Jared Goodwin</Copyright>
+    <RepositoryUrl>https://github.com/bitbound/WayType</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/bitbound/WayType</PackageProjectUrl>
+    <Company>$(Authors)</Company>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
     <!-- Release ships as one file, so its symbols go inside the assembly instead of loose .pdb sidecars. -->
     <DebugType Condition="'$(Configuration)' == 'Release'">embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
   </PropertyGroup>
 
 </Project>

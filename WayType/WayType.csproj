@@ -2,7 +2,14 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AssemblyName>WayType</AssemblyName>
+    <AssemblyName>waytype</AssemblyName>
+    <PackageId>waytype</PackageId>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>waytype</ToolCommandName>
+    <Description>Linux voice dictation with global hotkeys and OpenAI-compatible speech-to-text.</Description>
+    <PackageTags>dictation;voice;speech-to-text;transcription;linux;wayland;desktop;openai</PackageTags>
+    <PackageIcon>appicon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
@@ -17,6 +24,8 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="Assets\appicon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
