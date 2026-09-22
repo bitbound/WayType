@@ -17,6 +17,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
+    env:
+      # Must match ReleaseAssetSelector.AssetName in WayType.Libraries.Updater. A unit test asserts it.
+      ASSET_NAME: waytype-x64
+
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -66,8 +70,8 @@ jobs:
       - name: Prepare release asset
         run: |
           set -euo pipefail
-          mv ./artifacts/waytype ./artifacts/waytype-linux-x64
-          chmod +x ./artifacts/waytype-linux-x64
+          mv ./artifacts/waytype "./artifacts/$ASSET_NAME"
+          chmod +x "./artifacts/$ASSET_NAME"
 
       - name: Create GitHub release
         env:
@@ -79,7 +83,7 @@ jobs:
 
           release_args=(
             "$TAG"
-            "./artifacts/waytype-linux-x64"
+            "./artifacts/$ASSET_NAME"
             --title "$TAG"
             --generate-notes
           )

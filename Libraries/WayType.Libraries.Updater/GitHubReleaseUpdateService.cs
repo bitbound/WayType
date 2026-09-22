@@ -59,7 +59,8 @@ public sealed class GitHubReleaseUpdateService(
 
         var asset = ReleaseAssetSelector.Select(release);
 
-        if (asset?.DownloadUrl is not { Length: > 0 } downloadUrl)
+        if (asset?.Name is not { Length: > 0 } assetName
+            || asset.DownloadUrl is not { Length: > 0 } downloadUrl)
         {
             logger.LogWarning(
                 "Release {Tag} has no {AssetName} asset, so this update cannot be applied.",
@@ -70,7 +71,7 @@ public sealed class GitHubReleaseUpdateService(
 
         ArgumentNullException.ThrowIfNull(tag);
 
-        var update = new UpdateInfo(tag.Trim(), ReleaseAssetSelector.AssetName, downloadUrl);
+        var update = new UpdateInfo(tag.Trim(), assetName, downloadUrl);
         _availableUpdate = update;
 
         if (!_updateAvailableRaised)

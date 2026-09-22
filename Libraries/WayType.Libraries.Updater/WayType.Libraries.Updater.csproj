@@ -12,4 +12,8 @@
     <ProjectReference Include="..\WayType.Libraries.Core\WayType.Libraries.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="WayType.Tests" />
+  </ItemGroup>
+
 </Project>

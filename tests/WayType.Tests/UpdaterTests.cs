@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging.Abstractions;
 using WayType.Libraries.Core.Updates;
 using WayType.Libraries.Updater;
@@ -8,6 +9,8 @@ namespace WayType.Tests;
 public class GitHubReleaseUpdateServiceTests
 {
     private const string LatestReleaseUrl = "https://api.github.com/repos/TestOrg/WayType/releases/latest";
+
+    private static string ExpectedAssetName => ReleaseAssetSelector.AssetName;
 
     [Fact]
     public async Task CheckAsync_WhenReleaseIsNewer_ReturnsTheAssetAndRaisesTheEventOnce()
@@ -19,8 +22,8 @@ public class GitHubReleaseUpdateServiceTests
 
         var update = await service.CheckAsync(ct);
 
-        Assert.Equal("https://downloads.example.test/WayType-linux-x64", update?.DownloadUrl);
-        Assert.Equal("WayType-linux-x64", update?.AssetName);
+        Assert.Equal($"https://downloads.example.test/{ExpectedAssetName}", update?.DownloadUrl);
+        Assert.Equal(ExpectedAssetName, update?.AssetName);
         Assert.Equal("v1.5.0", update?.Version);
         Assert.Equal(update, service.AvailableUpdate);
 
@@ -75,6 +78,40 @@ public class GitHubReleaseUpdateServiceTests
         Assert.Null(await service.CheckAsync(TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task CheckAsync_WhenReleaseOnlyHasTheUnsuffixedAsset_StillReturnsAnUpdate()
+    {
+        var (service, _) = Create(ReleaseWithAssets("v1.5.0", "waytype"));
+
+        var update = await service.CheckAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("waytype", update?.AssetName);
+        Assert.Equal("https://downloads.example.test/waytype", update?.DownloadUrl);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenBothNamesExist_PrefersTheArchitectureSpecificAsset()
+    {
+        var (service, _) = Create(ReleaseWithAssets("v1.5.0", "waytype", ExpectedAssetName));
+
+        var update = await service.CheckAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(ExpectedAssetName, update?.AssetName);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenNameDiffersOnlyByCase_ReturnsAnUpdate()
+    {
+        // Releases used to publish the asset with a capital letter, and the old lookup compared with
+        // StringComparison.Ordinal, so it never matched.
+        var legacySpelling = char.ToUpperInvariant(ExpectedAssetName[0]) + ExpectedAssetName[1..];
+        var (service, _) = Create(ReleaseWithAssets("v1.5.0", legacySpelling));
+
+        var update = await service.CheckAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(legacySpelling, update?.AssetName);
+    }
+
     private static (GitHubReleaseUpdateService Service, StubHttpMessageHandler Handler) Create(
         Func<HttpRequestMessage, HttpResponseMessage> responder,
         Version? currentVersion = null)
@@ -89,13 +126,19 @@ public class GitHubReleaseUpdateServiceTests
         return (service, handler);
     }
 
-    private static Func<HttpRequestMessage, HttpResponseMessage> Release(string tag, bool withAsset)
-    {
-        var asset = withAsset
-            ? """{"name":"WayType-linux-x64","browser_download_url":"https://downloads.example.test/WayType-linux-x64","state":"uploaded"}"""
-            : """{"name":"WayType-macos-arm64","browser_download_url":"https://downloads.example.test/other","state":"uploaded"}""";
+    private static Func<HttpRequestMessage, HttpResponseMessage> Release(string tag, bool withAsset) =>
+        ReleaseWithAssets(tag, withAsset ? [ExpectedAssetName] : ["WayType-macos-arm64"]);
 
-        var payload = $$"""{"tag_name":"{{tag}}","assets":[{{asset}}]}""";
+    private static Func<HttpRequestMessage, HttpResponseMessage> ReleaseWithAssets(
+        string tag,
+        params string[] assetNames)
+    {
+        var assets = string.Join(
+            ",",
+            assetNames.Select(name =>
+                $$"""{"name":"{{name}}","browser_download_url":"https://downloads.example.test/{{name}}","state":"uploaded"}"""));
+
+        var payload = $$"""{"tag_name":"{{tag}}","assets":[{{assets}}]}""";
 
         return _ => StubHttpMessageHandler.Json(payload);
     }
@@ -132,5 +175,66 @@ public class UpdateHandoffTests
         };
 
         Assert.Null(UpdateHandoff.TryParse(args));
+    }
+}
+
+public class ReleaseAssetSelectorTests
+{
+    [Theory]
+    [InlineData(Architecture.X64, "waytype-x64")]
+    [InlineData(Architecture.Arm64, "waytype-arm64")]
+    public void BuildAssetName_ForASupportedArchitecture_AppendsThePlatformSuffix(
+        Architecture architecture,
+        string expected)
+    {
+        Assert.Equal(expected, ReleaseAssetSelector.BuildAssetName(architecture));
+    }
+
+    [Fact]
+    public void BuildCandidateNames_PrefersTheSuffixedAssetAndKeepsTheBareOneAsFallback()
+    {
+        Assert.Equal(
+            new[] { "waytype-arm64", "waytype" },
+            ReleaseAssetSelector.BuildCandidateNames(Architecture.Arm64));
+    }
+
+    [Theory]
+    [InlineData(Architecture.X86)]
+    [InlineData(Architecture.Arm)]
+    public void BuildCandidateNames_ForAnUnsupportedArchitecture_IsTheBareName(Architecture architecture)
+    {
+        Assert.Equal(new[] { "waytype" }, ReleaseAssetSelector.BuildCandidateNames(architecture));
+        Assert.Equal("waytype", ReleaseAssetSelector.BuildAssetName(architecture));
+    }
+}
+
+public class ReleaseWorkflowTests
+{
+    [Fact]
+    public void ReleaseWorkflow_PublishesTheAssetNameTheUpdaterLooksFor()
+    {
+        var workflow = File.ReadAllText(
+            Path.Combine(FindRepositoryRoot(), ".github", "workflows", "release.yml"));
+
+        // The name lives in two places that cannot see each other, so pin them together here.
+        Assert.Contains($"ASSET_NAME: {ReleaseAssetSelector.AssetName}", workflow, StringComparison.Ordinal);
+        Assert.Contains("./artifacts/$ASSET_NAME", workflow, StringComparison.Ordinal);
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "WayType.slnx")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException("Could not find the repository root above the test binaries.");
     }
 }

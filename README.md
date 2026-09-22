@@ -41,12 +41,12 @@ dotnet tool uninstall --global waytype
 
 ### Download from GitHub Releases
 
-Grab `waytype-linux-x64` from the [latest release](https://github.com/bitbound/WayType/releases/latest). It is a self-contained single file, so no .NET install is needed.
+Grab `waytype-x64` from the [latest release](https://github.com/bitbound/WayType/releases/latest). It is a self-contained single file, so no .NET install is needed.
 
 ```
 mkdir -p ~/.local/bin
 curl -L -o ~/.local/bin/waytype \
-  https://github.com/bitbound/WayType/releases/latest/download/waytype-linux-x64
+  https://github.com/bitbound/WayType/releases/latest/download/waytype-x64
 chmod +x ~/.local/bin/waytype
 waytype
 ```
