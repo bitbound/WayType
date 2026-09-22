@@ -183,6 +183,36 @@ public sealed class DictationCoordinator : IDictationCoordinator
             var finalText = transcription.Trim();
             var promptTitle = (string?)null;
 
+            if (string.IsNullOrWhiteSpace(finalText))
+            {
+                SetState(DictationState.Idle);
+                return;
+            }
+
+            var durationMs = (long)_timeProvider.GetElapsedTime(started, _timeProvider.GetTimestamp()).TotalMilliseconds;
+            var entryId = Guid.NewGuid();
+            var audioFileName = await SaveRecordingAsync(entryId, wav, cancellationToken).ConfigureAwait(false);
+            var historyEntry = new HistoryEntry
+            {
+                Id = entryId,
+                Text = finalText,
+                ModelId = _settings.Current.SpeechToText.ModelId,
+                AudioFileName = audioFileName,
+                DurationMs = durationMs,
+            };
+
+            try
+            {
+                await _history.AddAsync(historyEntry, cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The audio is only reachable through the row, so it goes back out with the row.
+                _recordings.Delete(audioFileName);
+
+                throw;
+            }
+
             if (_settings.Current.PostProcessing.IsConfigured && !string.IsNullOrWhiteSpace(finalText))
             {
                 SetState(DictationState.PostProcessing);
@@ -194,39 +224,21 @@ public sealed class DictationCoordinator : IDictationCoordinator
                 finalText = (await _textGeneration
                     .CompleteAsync(rendered, cancellationToken)
                     .ConfigureAwait(false)).Trim();
+
+                if (!string.IsNullOrWhiteSpace(finalText))
+                {
+                    historyEntry.Text = finalText;
+                    historyEntry.Transcription = transcription;
+                    historyEntry.PromptTitle = promptTitle;
+                    historyEntry.DurationMs = (long)_timeProvider.GetElapsedTime(started, _timeProvider.GetTimestamp()).TotalMilliseconds;
+                    await _history.UpdateAsync(historyEntry, cancellationToken).ConfigureAwait(false);
+                }
             }
 
             if (string.IsNullOrWhiteSpace(finalText))
             {
                 SetState(DictationState.Idle);
                 return;
-            }
-
-            var durationMs = (long)_timeProvider.GetElapsedTime(started, _timeProvider.GetTimestamp()).TotalMilliseconds;
-            var entryId = Guid.NewGuid();
-            var audioFileName = await SaveRecordingAsync(entryId, wav, cancellationToken).ConfigureAwait(false);
-
-            try
-            {
-                await _history.AddAsync(
-                    new HistoryEntry
-                    {
-                        Id = entryId,
-                        Text = finalText,
-                        Transcription = promptTitle is null ? null : transcription,
-                        ModelId = _settings.Current.SpeechToText.ModelId,
-                        PromptTitle = promptTitle,
-                        AudioFileName = audioFileName,
-                        DurationMs = durationMs,
-                    },
-                    cancellationToken).ConfigureAwait(false);
-            }
-            catch
-            {
-                // The audio is only reachable through the row, so it goes back out with the row.
-                _recordings.Delete(audioFileName);
-
-                throw;
             }
 
             SetState(DictationState.Injecting);

@@ -13,6 +13,8 @@ public interface IHistoryService
 
     Task AddAsync(HistoryEntry entry, CancellationToken cancellationToken = default);
 
+    Task<bool> UpdateAsync(HistoryEntry entry, CancellationToken cancellationToken = default);
+
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task ClearAsync(CancellationToken cancellationToken = default);
@@ -70,6 +72,34 @@ public sealed class HistoryService : IHistoryService
         await WriteAsync(next, cancellationToken);
 
         HistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task<bool> UpdateAsync(HistoryEntry entry, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        List<HistoryEntry> next;
+
+        lock (_sync)
+        {
+            next = Load();
+
+            var index = next.FindIndex(existing => existing.Id == entry.Id);
+
+            if (index < 0)
+            {
+                return false;
+            }
+
+            next[index] = entry;
+            _cached = next;
+        }
+
+        await WriteAsync(next, cancellationToken);
+
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+
+        return true;
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)

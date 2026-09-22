@@ -168,6 +168,8 @@ public sealed class FakeTextGenerationClient : ITextGenerationClient
 {
     public string Text { get; set; } = "cleaned up";
 
+    public Exception? Throw { get; set; }
+
     public List<string> Prompts { get; } = [];
 
     public List<string?> ListEndpoints { get; } = [];
@@ -175,6 +177,11 @@ public sealed class FakeTextGenerationClient : ITextGenerationClient
     public Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default)
     {
         Prompts.Add(prompt);
+
+        if (Throw is not null)
+        {
+            throw Throw;
+        }
 
         return Task.FromResult(Text);
     }

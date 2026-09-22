@@ -1,0 +1,83 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: Create a beta pre-release
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Calculate version
+        id: version
+        shell: bash
+        env:
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          version="$(date -u +'%Y.%m.%d')"
+          if [[ "$PRERELEASE" == "true" ]]; then
+            version+="-beta"
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Publish Linux executable
+        run: >-
+          dotnet publish WayType/WayType.csproj
+          --configuration Release
+          --runtime linux-x64
+          --self-contained true
+          --output ./artifacts
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Prepare release asset
+        run: |
+          set -euo pipefail
+          mv ./artifacts/WayType ./artifacts/WayType-linux-x64
+          chmod +x ./artifacts/WayType-linux-x64
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          release_args=(
+            "$TAG"
+            "./artifacts/WayType-linux-x64"
+            --title "WayType $VERSION"
+            --generate-notes
+          )
+
+          if [[ "$PRERELEASE" == "true" ]]; then
+            release_args+=(--prerelease)
+          fi
+
+          gh release create "${release_args[@]}"

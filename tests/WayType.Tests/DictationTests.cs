@@ -84,6 +84,28 @@ public class DictationCoordinatorTests
     }
 
     [Fact]
+    public async Task StopAsync_WhenPostProcessingFails_KeepsTheRawTranscriptionInHistory()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        _settings.Current.PostProcessing.Enabled = true;
+        _settings.Current.PostProcessing.Endpoint = "https://text.example.test/v1";
+        _settings.Current.PostProcessing.ModelId = "qwen3";
+        _textGeneration.Throw = new AiEndpointException("The endpoint timed out.", statusCode: null);
+
+        await _coordinator.StartAsync(ct);
+        await _coordinator.StopAsync(ct);
+
+        Assert.Equal(DictationState.Error, _coordinator.State);
+        Assert.Empty(_injector.Typed);
+
+        var entry = Assert.Single(_history.GetAll());
+        Assert.Equal("hello there", entry.Text);
+        Assert.Null(entry.Transcription);
+        Assert.Null(entry.PromptTitle);
+    }
+
+    [Fact]
     public async Task StopAsync_WhenTranscriptionFails_SetsErrorStateAndTypesNothing()
     {
         var ct = TestContext.Current.CancellationToken;

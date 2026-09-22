@@ -46,7 +46,7 @@ public sealed class TranscriptionPrompt
         return new TranscriptionPrompt
         {
             Id = BuiltInId,
-            Title = "Correct and clean up",
+            Title = "Built-in",
             Instructions = BuiltInInstructions,
             IsBuiltIn = true,
         };

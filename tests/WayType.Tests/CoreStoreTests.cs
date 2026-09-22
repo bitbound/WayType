@@ -211,6 +211,7 @@ public class PromptServiceTests
 
         Assert.Equal(TranscriptionPrompt.BuiltInId, all[0].Id);
         Assert.True(all[0].IsBuiltIn);
+        Assert.Equal("Built-in", all[0].Title);
         Assert.Contains(PromptRenderer.OutputPlaceholder, all[0].Instructions);
     }
 
