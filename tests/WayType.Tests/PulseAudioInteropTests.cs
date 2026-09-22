@@ -93,7 +93,7 @@ public class PulseAudioRecorderBufferTests
         Assert.Equal(0, (int)(PulseAudioRecorder.CreateRecordBufferAttr().FragmentSize % bytesPerFrame));
     }
 
-    [Fact]
+    [SkipOnCiFact]
     public void ComputeTailBytes_WithATwoSecondLatency_IsCappedAtHalfASecond()
     {
         // The cap exists so a server that misreports latency cannot stall the end of a take.
@@ -102,7 +102,7 @@ public class PulseAudioRecorderBufferTests
         Assert.Equal(32_000, PulseAudioRecorder.ComputeTailBytes(2_000_000, ref spec));
     }
 
-    [Fact]
+    [SkipOnCiFact]
     public void ComputeTailBytes_WithAOneHundredMillisecondLatency_ReturnsOneChunk()
     {
         var spec = Spec();
@@ -110,7 +110,7 @@ public class PulseAudioRecorderBufferTests
         Assert.Equal(6_400, PulseAudioRecorder.ComputeTailBytes(100_000, ref spec));
     }
 
-    [Fact]
+    [SkipOnCiFact]
     public void ComputeTailBytes_AlignsDownToAWholeSample()
     {
         // 150 us at 64 000 bytes per second is 9.6 bytes, which has to become two whole 4 byte

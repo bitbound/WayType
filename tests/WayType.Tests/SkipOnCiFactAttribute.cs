@@ -13,7 +13,7 @@ public sealed class SkipOnCiFactAttribute : FactAttribute
     {
         if (IsCiEnvironment())
         {
-            Skip = "Skipped in GitHub Actions because the test requires a live desktop service.";
+            Skip = "Skipped on CI because the test needs PulseAudio libraries or a live audio server.";
         }
     }
 
