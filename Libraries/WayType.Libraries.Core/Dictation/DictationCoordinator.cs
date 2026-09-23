@@ -94,7 +94,10 @@ public sealed class DictationCoordinator : IDictationCoordinator
 
             if (!_settings.Current.SpeechToText.IsConfigured)
             {
-                Fail("Configure the speech-to-text endpoint and model in Settings first.");
+                var speech = _settings.Current.SpeechToText;
+                Fail(speech.ModelSelectionEnabled
+                    ? "Configure the speech-to-text endpoint and model in Settings first."
+                    : "Configure the speech-to-text endpoint in Settings first.");
                 return Task.CompletedTask;
             }
 
@@ -196,7 +199,9 @@ public sealed class DictationCoordinator : IDictationCoordinator
             {
                 Id = entryId,
                 Text = finalText,
-                ModelId = _settings.Current.SpeechToText.ModelId,
+                ModelId = _settings.Current.SpeechToText.ModelSelectionEnabled
+                    ? _settings.Current.SpeechToText.ModelId
+                    : null,
                 AudioFileName = audioFileName,
                 DurationMs = durationMs,
             };

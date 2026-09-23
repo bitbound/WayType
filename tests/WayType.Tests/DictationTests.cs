@@ -42,6 +42,22 @@ public class DictationCoordinatorTests
     }
 
     [Fact]
+    public async Task StartAsync_WhenModelSelectionIsDisabledAndOnlyTheEndpointIsSet_StartsListening()
+    {
+        var appSettings = TestSettings.ConfiguredSst();
+        appSettings.SpeechToText.ModelId = null;
+        appSettings.SpeechToText.ModelSelectionEnabled = false;
+
+        var coordinator = Create(TestSettings.Create(new InMemoryFileStore(), appSettings));
+        var ct = TestContext.Current.CancellationToken;
+
+        await coordinator.StartAsync(ct);
+        Assert.True(coordinator.IsListening);
+
+        await coordinator.StopAsync(ct);
+    }
+
+    [Fact]
     public async Task StopAsync_WithoutPostProcessing_TypesTranscriptionAndRecordsHistory()
     {
         var ct = TestContext.Current.CancellationToken;

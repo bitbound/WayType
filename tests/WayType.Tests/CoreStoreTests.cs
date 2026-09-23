@@ -20,6 +20,7 @@ public class SettingsServiceTests
         settings.Current.TypingDelayMs = 5;
         settings.Current.SpeechToText.Endpoint = "http://localhost:8000/v1";
         settings.Current.SpeechToText.ApiKey = "secret-key";
+        settings.Current.SpeechToText.ModelSelectionEnabled = false;
         settings.Current.PostProcessing.Enabled = true;
         settings.Current.PostProcessing.TimeoutSeconds = 300;
         settings.Current.PostProcessing.Options.Temperature = 0.2;
@@ -34,9 +35,29 @@ public class SettingsServiceTests
         Assert.Equal(5, reloaded.Current.TypingDelayMs);
         Assert.Equal("http://localhost:8000/v1", reloaded.Current.SpeechToText.Endpoint);
         Assert.Equal("secret-key", reloaded.Current.SpeechToText.ApiKey);
+        Assert.False(reloaded.Current.SpeechToText.ModelSelectionEnabled);
         Assert.True(reloaded.Current.PostProcessing.Enabled);
         Assert.Equal(300, reloaded.Current.PostProcessing.TimeoutSeconds);
         Assert.Equal(0.2, reloaded.Current.PostProcessing.Options.Temperature);
+    }
+
+    [Fact]
+    public async Task Read_WhenSettingsFilePredatesModelSelection_DefaultsToSelectionEnabled()
+    {
+        var paths = new TestPlatformPaths();
+        var fileStore = new InMemoryFileStore();
+
+        await fileStore.WriteAllTextAsync(paths.SettingsFilePath,
+            """{"speechToText":{"endpoint":"https://api.example.test/v1","modelId":"whisper-1"}}""",
+            TestContext.Current.CancellationToken);
+
+        var settings = new SettingsService(
+            paths,
+            fileStore,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<SettingsService>.Instance);
+
+        Assert.True(settings.Current.SpeechToText.ModelSelectionEnabled);
+        Assert.True(settings.Current.SpeechToText.IsConfigured);
     }
 
     [Fact]

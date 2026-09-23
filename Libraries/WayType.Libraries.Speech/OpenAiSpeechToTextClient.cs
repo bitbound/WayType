@@ -20,12 +20,15 @@ public sealed class OpenAiSpeechToTextClient(HttpClient httpClient, ISettingsSer
     public async Task<string> TranscribeAsync(byte[] wavBytes, CancellationToken cancellationToken = default)
     {
         var speech = settings.Current.SpeechToText;
-        var model = speech.ModelId;
 
-        if (string.IsNullOrWhiteSpace(model))
+        if (speech.ModelSelectionEnabled && string.IsNullOrWhiteSpace(speech.ModelId))
         {
             throw new AiEndpointException("Set a speech-to-text model before transcribing.");
         }
+
+        // A server that cannot list models does not accept a model choice either, so the field is
+        // left out entirely even when a stale id is still saved.
+        var model = speech.ModelSelectionEnabled ? speech.ModelId : null;
 
         using var request = new HttpRequestMessage(HttpMethod.Post, AiEndpoint.BuildUri(speech.Endpoint, "/audio/transcriptions"));
         request.Content = BuildForm(model, speech.Language, wavBytes);
@@ -52,7 +55,7 @@ public sealed class OpenAiSpeechToTextClient(HttpClient httpClient, ISettingsSer
         return AiEndpointRequests.ListModelsAsync(httpClient, endpoint, apiKey, logger, cancellationToken);
     }
 
-    private static MultipartFormDataContent BuildForm(string model, string? language, byte[] wavBytes)
+    private static MultipartFormDataContent BuildForm(string? model, string? language, byte[] wavBytes)
     {
         var form = new MultipartFormDataContent();
 
@@ -60,7 +63,11 @@ public sealed class OpenAiSpeechToTextClient(HttpClient httpClient, ISettingsSer
         audio.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
         form.Add(audio, "file", "audio.wav");
 
-        form.Add(new StringContent(model), "model");
+        if (!string.IsNullOrWhiteSpace(model))
+        {
+            form.Add(new StringContent(model), "model");
+        }
+
         form.Add(new StringContent("json"), "response_format");
 
         if (!string.IsNullOrWhiteSpace(language))

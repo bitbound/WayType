@@ -77,6 +77,8 @@ Open **Settings → Create application shortcut** to add WayType to your desktop
 
 **Settings → Speech to text.** Any OpenAI-compatible service works. Set the endpoint, the API key, and the model id. The endpoint placeholder suggests [Lemonade](https://lemonade-server.ai) at `http://localhost:13305/v1`. Click the refresh button next to the model field to pull the list from `/v1/models`.
 
+Single-model servers that serve one transcription model chosen at startup and expose no `/v1/models` listing (for example [parakeet.cpp](https://github.com/mudler/parakeet.cpp) in its container form) work too. Untick **This server lists its models (/v1/models)** and the model field disappears, no model is required, and none is sent.
+
 ### Pick a hotkey
 
 **Settings → Dictation → Set shortcut.** Press the combination you want. The default is `Ctrl+Alt+Space`. The trigger mode decides the behavior.

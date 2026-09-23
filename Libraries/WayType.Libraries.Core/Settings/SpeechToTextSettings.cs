@@ -10,6 +10,13 @@ public sealed class SpeechToTextSettings
 
     public string? Language { get; set; }
 
+    /// <summary>
+    /// False for single-model servers (e.g. parakeet.cpp) that serve one transcription model chosen
+    /// at launch and expose no /v1/models listing. No model is sent or required in that case.
+    /// </summary>
+    public bool ModelSelectionEnabled { get; set; } = true;
+
     public bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(Endpoint) && !string.IsNullOrWhiteSpace(ModelId);
+        !string.IsNullOrWhiteSpace(Endpoint)
+        && (!ModelSelectionEnabled || !string.IsNullOrWhiteSpace(ModelId));
 }

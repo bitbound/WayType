@@ -87,7 +87,14 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
     private string? _speechApiKey;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SpeechModelWarning))]
+    [NotifyPropertyChangedFor(nameof(HasSpeechModelWarning))]
     private string? _speechModelId;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SpeechModelWarning))]
+    [NotifyPropertyChangedFor(nameof(HasSpeechModelWarning))]
+    private bool _modelSelectionEnabled = true;
 
     [ObservableProperty]
     private ObservableCollection<string> _speechModels = [];
@@ -231,6 +238,13 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         : Hotkey;
 
     public string LogFilePath => _fileLogger.LogFilePath;
+
+    public string? SpeechModelWarning =>
+        ModelSelectionEnabled && string.IsNullOrWhiteSpace(SpeechModelId)
+            ? "Dictation needs a model. Type its id or load the list. If the server only serves one model, untick \"This server lists its models\"."
+            : null;
+
+    public bool HasSpeechModelWarning => !string.IsNullOrEmpty(SpeechModelWarning);
 
     protected override async Task OnInitializeAsync()
     {
@@ -482,6 +496,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         settings.SpeechToText.Endpoint = SpeechEndpoint?.Trim();
         settings.SpeechToText.ApiKey = SpeechApiKey?.Trim();
         settings.SpeechToText.ModelId = SpeechModelId?.Trim();
+        settings.SpeechToText.ModelSelectionEnabled = ModelSelectionEnabled;
 
         settings.PostProcessing.Enabled = PostProcessingEnabled;
         settings.PostProcessing.Endpoint = PostEndpoint?.Trim();
@@ -573,6 +588,7 @@ public sealed partial class SettingsViewModel : ViewModelBase<SettingsView>
         SpeechEndpoint = settings.SpeechToText.Endpoint;
         SpeechApiKey = settings.SpeechToText.ApiKey;
         SpeechModelId = settings.SpeechToText.ModelId;
+        ModelSelectionEnabled = settings.SpeechToText.ModelSelectionEnabled;
 
         PostProcessingEnabled = settings.PostProcessing.Enabled;
         PostEndpoint = settings.PostProcessing.Endpoint;

@@ -88,6 +88,34 @@ public class OpenAiSpeechToTextClientTests
     }
 
     [Fact]
+    public async Task TranscribeAsync_WhenModelSelectionIsDisabled_TranscribesWithoutAModelField()
+    {
+        var settings = Speech();
+        settings.SpeechToText.ModelSelectionEnabled = false;
+        settings.SpeechToText.ModelId = null;
+
+        var (client, handler) = Create(settings, _ => StubHttpMessageHandler.Json("""{"text":"ok"}"""));
+
+        var text = await client.TranscribeAsync([1], TestContext.Current.CancellationToken);
+
+        Assert.Equal("ok", text);
+        Assert.DoesNotContain("name=model", handler.RequestBodies[0]);
+    }
+
+    [Fact]
+    public async Task TranscribeAsync_WhenModelSelectionIsDisabledWithAStaleModel_OmitsTheModelField()
+    {
+        var settings = Speech();
+        settings.SpeechToText.ModelSelectionEnabled = false;
+
+        var (client, handler) = Create(settings, _ => StubHttpMessageHandler.Json("""{"text":"ok"}"""));
+
+        await client.TranscribeAsync([1], TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain("name=model", handler.RequestBodies[0]);
+    }
+
+    [Fact]
     public async Task ListModelsAsync_WhenEndpointAlreadyCarriesV1_RequestsModelsOnce()
     {
         var (client, handler) = Create(Speech(), _ => StubHttpMessageHandler.Json(
