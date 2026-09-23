@@ -187,7 +187,7 @@
               <TextBlock Grid.Row="0" Classes="field" Text="OpenAI endpoint" />
               <TextBox Grid.Row="0" Grid.Column="1"
                        Text="{Binding SpeechEndpoint}"
-                       PlaceholderText="https://api.openai.com/v1" />
+                       PlaceholderText="http://localhost:13305/v1" />
 
               <TextBlock Grid.Row="1" Classes="field" Text="API key" Margin="0,10,0,0" />
               <Grid Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" ColumnDefinitions="*,Auto">
@@ -239,7 +239,7 @@
               <TextBlock Grid.Row="0" Classes="field" Text="OpenAI endpoint" />
               <TextBox Grid.Row="0" Grid.Column="1"
                        Text="{Binding PostEndpoint}"
-                       PlaceholderText="https://api.openai.com/v1" />
+                       PlaceholderText="http://localhost:13305/v1" />
 
               <TextBlock Grid.Row="1" Classes="field" Text="API key" Margin="0,10,0,0" />
               <Grid Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" ColumnDefinitions="*,Auto">

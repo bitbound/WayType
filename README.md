@@ -65,13 +65,17 @@ WayType uses the portals for both halves of the job. GlobalShortcuts registers t
 
 ## Setup
 
+### Add WayType to the application menu
+
+Open **Settings → Create application shortcut** to add WayType to your desktop environment's application menu.
+
 ### Grant text input permission
 
 **Settings → Text input permission → Grant permission.** The portal shows a dialog that asks you to allow remote desktop input. WayType saves the restore token, so you are not asked again on every launch. If the permission is revoked later, click **Re-check** and grant it again.
 
 ### Choose a speech endpoint
 
-**Settings → Speech to text.** Any OpenAI-compatible service works. Set the endpoint, the API key, and the model id. The endpoint defaults to `https://api.openai.com/v1`, so you can point it at a local server instead. Click the refresh button next to the model field to pull the list from `/v1/models`.
+**Settings → Speech to text.** Any OpenAI-compatible service works. Set the endpoint, the API key, and the model id. The endpoint placeholder suggests [Lemonade](https://lemonade-server.ai) at `http://localhost:13305/v1`. Click the refresh button next to the model field to pull the list from `/v1/models`.
 
 ### Pick a hotkey
 

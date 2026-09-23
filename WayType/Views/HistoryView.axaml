@@ -7,7 +7,7 @@
              x:Class="WayType.Views.HistoryView"
              x:DataType="vm:HistoryViewModel">
 
-  <Grid RowDefinitions="Auto,Auto,*" MaxWidth="820" HorizontalAlignment="Left" Margin="20">
+  <Grid RowDefinitions="Auto,Auto,*" MaxWidth="820" HorizontalAlignment="Stretch" Margin="20">
 
     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
       <TextBlock Classes="h1" Text="History" VerticalAlignment="Center" />
